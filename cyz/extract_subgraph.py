@@ -131,4 +131,5 @@ options = {
 nx.draw(reselected_G, **options)
 plt.show()
 
+# final selected nodes
 print(reselected_G.nodes())
