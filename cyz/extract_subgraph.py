@@ -17,8 +17,8 @@ print(df_label)
 
 # Change label into label index
 map_label_index = {'Neural_Networks': 0, 'Rule_Learning': 1, 'Reinforcement_Learning': 2, 'Probabilistic_Methods': 3, 'Theory': 4, 'Genetic_Algorithms': 5, 'Case_Based': 6}
-for key, item in map_label_index.items():
-    df_label.loc[df_label["label"]==key,["label"]] = item
+for key, value in map_label_index.items():
+    df_label.loc[df_label["label"]==key,["label"]] = value
 print(df_label)
 
 # Make graph
@@ -28,6 +28,18 @@ G.add_edges_from(df_edge.to_numpy())
 print("G.number_of_nodes(): ", G.number_of_nodes())
 print("G.number_of_edges(): ", G.number_of_edges())
 print("number_connected_components(G): ", nx.number_connected_components(G))
+
+
+
+# options = {
+#     'node_color': 'blue',
+#     'node_size': 30,
+#     'width': 1,
+# }
+# nx.draw(G, **options)
+# plt.show()
+
+
 
 # find the largest component in this unconnected Graph
 components = [G.subgraph(c).copy() for c in nx.connected_components(G)]
@@ -59,14 +71,17 @@ print("number_connected_components(selected_G): ", nx.number_connected_component
 
 # select 20 nodes per class according to the degree of a node
 subG_array_node_degree = np.array(subG.degree())
+# print(subG_array_node_degree)
 df_subG_degree = pd.DataFrame({'id': subG_array_node_degree[:, 0], 'degree': subG_array_node_degree[:, 1]})
 # Merge two dataframes
 df_subG_node_label_degree = pd.merge(left=df_subG_label, right=df_subG_degree, on=['id'])
+print(df_subG_node_label_degree)
 
 # the selected graph may be unconnected therefore we extract its largest component
 for i in range(num_of_class):
     df_1_class = df_subG_node_label_degree.loc[df_subG_node_label_degree['label']==i, :]
     df_1_class = df_1_class.sort_values(by=['degree'],ascending=False)
+    print(df_1_class)
     df_most_connected = df_1_class.head(n=selected_num)
     selected_nodes_labels[selected_num*i:selected_num*(i+1),:] = df_most_connected[['id','label']].to_numpy(dtype=np.int32)
 # print("Selected nodes and labels:")
@@ -75,6 +90,16 @@ for i in range(num_of_class):
 # Examine the selected G and extract its largest component
 selected_G = subG.subgraph(selected_nodes_labels[:,0])
 print("number_connected_components(selected_G): ", nx.number_connected_components(selected_G))
+
+# options = {
+#     'node_color': 'blue',
+#     'node_size': 30,
+#     'width': 1,
+# }
+# nx.draw(selected_G, **options)
+# plt.show()
+
+
 selected_G_components = [selected_G.subgraph(c).copy() for c in nx.connected_components(selected_G)]
 reselected_G = selected_G_components[0]
 print("Num of nodes in the largest component in the selected_G: ", len(reselected_G.nodes))
@@ -106,3 +131,4 @@ options = {
 nx.draw(reselected_G, **options)
 plt.show()
 
+print(reselected_G.nodes())
