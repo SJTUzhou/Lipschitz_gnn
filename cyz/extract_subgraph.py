@@ -123,21 +123,21 @@ def get_subgraph(num_of_node_with_large_degree_per_class):
     print("total num of selected nodes: ", len(reselected_G.nodes()))
 
 
-    # # Draw final selected graph
-    # color_map = []
-    # color_list = ['red', 'blue', 'pink', 'green', 'orange', 'black', 'grey']
-    # for node in reselected_G:
-    #     node_label = df_reselected_G_label.loc[df_reselected_G_label['id']==node, 'label'].values[0]
-    #     node_color = color_list[node_label]
-    #     color_map.append(node_color)
+    # Draw final selected graph
+    color_map = []
+    color_list = ['red', 'blue', 'pink', 'green', 'orange', 'black', 'grey']
+    for node in reselected_G:
+        node_label = df_reselected_G_label.loc[df_reselected_G_label['id']==node, 'label'].values[0]
+        node_color = color_list[node_label]
+        color_map.append(node_color)
 
-    # options = {
-    #     'node_color': color_map,
-    #     'node_size': 30,
-    #     'width': 1,
-    # }
-    # nx.draw(reselected_G, **options)
-    # plt.show()
+    options = {
+        'node_color': color_map,
+        'node_size': 30,
+        'width': 1,
+    }
+    nx.draw(reselected_G, **options)
+    plt.show()
 
     # final selected nodes in the ascending order
     final_nodes = np.sort(reselected_G.nodes())

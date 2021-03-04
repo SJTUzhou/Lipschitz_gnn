@@ -8,11 +8,13 @@ class Norm_Constraint(Callback):
         # Whether has Lipschitz Constraint
         self.withConstraint = withConstraint
         self.model = model
+        # Adjacency matrix (diagonal element = 0)
         self.Ad = Ad
-        # Number of samples
+        # Number of samples (number of nodes e,g, 170)
         self.K = K
         # [Number of features per sample, Nums of neurons for every layer]
         self.N = N
+        # define the index of the layers to which we apply Lip. Constraint
         self.layers = [2, 3]
         # number of iteration to update weight matrix in one step
         self.nit = 1
