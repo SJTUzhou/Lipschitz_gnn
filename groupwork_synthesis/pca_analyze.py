@@ -7,13 +7,13 @@ after PCA, feature dim: 1433->129 (95% information)'''
 
 dataPath = "./data/cora.content"
 df = pd.read_csv(dataPath, sep="\t", header=None)
-reselected_nodes = pd.read_csv("subgraph.csv").to_numpy().flatten()
+reselected_nodes = pd.read_csv("./data/subgraph.csv").to_numpy().flatten()
 
 
 df = df.loc[df[0].isin(reselected_nodes), :]
 df.sort_values(by = [0], ascending= True,inplace= True)
 print(df)
-df.to_csv("subgraph_featureslabel_before_PCA.csv",index=False)
+df.to_csv("./data/subgraph_featureslabel_before_PCA.csv",index=False)
 
 
 # read data into dataFrame
@@ -46,8 +46,8 @@ new_feature_set['label'] = df.loc[:, 1434].to_numpy()
 
 
 print(new_feature_set)
-new_feature_set.to_csv("subgraph_featureslabel_after_PCA.csv",index=False)
+new_feature_set.to_csv("./data/subgraph_featureslabel_after_PCA.csv",index=False)
 
 
 df.rename(columns={0: 'id', 1434: 'label'}, inplace=True)
-df.to_csv("subgraph_featureslabel_before_PCA.csv",index=False)
+df.to_csv("./data/subgraph_featureslabel_before_PCA.csv",index=False)

@@ -31,7 +31,8 @@ def get_model(X, N, weight_1, weight_2, bias_1, bias_2):
     return model
 
 def main():
-    # Currently, to run in memory, we keep the first 10 features (principal components) for each node
+    # Currently, to run in memory, we keep the first 10 features (principal components, only contain 20% information) for each node
+    # This will lead to overfitting even with 10 features 
     node_features, labels, Ad = utils.generate_data(file_selected_data, num_of_feature=10)
 
     # node_features.shape = (numNode, numFeature);  labels.shape=(numNode, numClass)
