@@ -3,7 +3,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 
-
+# This file is used to generate subgraph currently
 def get_subgraph(num_of_node_with_large_degree_per_class):
     '''
     Parameter:
@@ -122,21 +122,22 @@ def get_subgraph(num_of_node_with_large_degree_per_class):
     print(df_reselected_G_label.groupby(['label'])['id'].count().reset_index())
     print("total num of selected nodes: ", len(reselected_G.nodes()))
 
+    # Uncommment this part to draw the selected subgraph
+    # Draw final selected graph
+    color_map = []
+    color_list = ['red', 'blue', 'pink', 'green', 'orange', 'black', 'grey']
+    for node in reselected_G:
+        node_label = df_reselected_G_label.loc[df_reselected_G_label['id']==node, 'label'].values[0]
+        node_color = color_list[node_label]
+        color_map.append(node_color)
 
-    # # Draw final selected graph
-    # color_map = []
-    # color_list = ['red', 'blue', 'pink', 'green', 'orange', 'black', 'grey']
-    # for node in reselected_G:
-    #     node_label = df_reselected_G_label.loc[df_reselected_G_label['id']==node, 'label'].values[0]
-    #     node_color = color_list[node_label]
-    #     color_map.append(node_color)
-
-    # options = {
-    #     'node_color': color_map,
-    #     'node_size': 30,
-    #     'width': 1,
-    # }
-    # nx.draw(reselected_G, **options)
+    options = {
+        'node_color': color_map,
+        'node_size': 30,
+        'width': 1,
+    }
+    nx.draw(reselected_G, **options)
+    plt.savefig("./data/subgraph.png")
     # plt.show()
 
     # final selected nodes in the ascending order
