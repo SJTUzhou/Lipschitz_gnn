@@ -113,5 +113,5 @@ plt.show()
 
 sub_reselected = pd.DataFrame({'id':selected_nodes })
 sub_reselected.sort_values(by = ['id'], ascending= True,inplace= True)
-sub_reselected.to_csv('groupwork_synthesis\subgraph_node_sample.csv', index=False)
+sub_reselected.to_csv('groupwork_synthesis\data\subgraph_node_sample.csv', index=False)
 
