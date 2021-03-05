@@ -1,3 +1,10 @@
+'''
+input : graph with 7 labels
+output : 
+a subgraph with 210 nodes, 30 nodes for each label
+a csv file containing all these nodes  
+'''
+
 import numpy as np
 import pandas as pd
 import networkx as nx
@@ -19,16 +26,12 @@ map_label_index = {'Neural_Networks': 0, 'Rule_Learning': 1, 'Reinforcement_Lear
 for key, value in map_label_index.items():
     df_label.loc[df_label["label"]==key,["label"]] = value
 
-# Make graph
-#G.add_nodes_from(df_label['id'].to_numpy(), label = df_label['label'].to_numpy())
-
+# add label as the attribute for each node
 G = nx.from_pandas_edgelist(df_edge,0,1)
 nx.set_node_attributes(G, df_label.set_index('id')['label'].to_dict(),'label')
 # print("G.number_of_nodes(): ", G.number_of_nodes())
 # print("G.number_of_edges(): ", G.number_of_edges())
 # print("number_connected_components(G): ", nx.number_connected_components(G))
-
-
 
 
 # find the largest component in this unconnected Graph
@@ -39,26 +42,32 @@ subG = components[0]
 df_subG_label = df_label.loc[df_label['id'].isin(subG.nodes()), :]
 subG_array_node_degree = np.array(subG.degree())
 
+# get the degree of each node in the subgraph
 df_subG_degree = pd.DataFrame({'id': subG_array_node_degree[:, 0], 'degree': subG_array_node_degree[:, 1]})
 # Merge two dataframes
 df_subG_node_label_degree = pd.merge(left=df_subG_label, right=df_subG_degree, on=['id'])
 
 
-selecte_num = 20
+# nodes we want for each label
+selecte_num = 30
+# number of different labels
 label_num =7
 
+# sort nodes by its degree
 df_subG_node_label_degree.sort_values(by=['degree'],ascending=False,inplace=True)
-
-#get some random_roots
+# get some random_roots with which we can start our algorithm to select nodes
 random_roots = df_subG_node_label_degree.iloc[sample(range(5),3)]
-#random_roots = df_subG_node_label_degree.iloc[0:7]
+# define FS which contains the lable and id of each node seleted
 FS = random_roots.set_index('id')['label'].to_dict()
 
+# define selected_nodes to store the id of each node selected
 selected_nodes = [i for i in FS]
+# define notebook to record the number of nodes selected for each label 
 notebook = dict(enumerate(np.zeros(7,int)))
 for i in selected_nodes:
     notebook[FS[i]] += 1
 
+# choose random neighbor of root
 def random_neighbor(choices, notebook,selecte_num,selected_nodes):
     neighbors = [i for i in choices.keys()]
     p = [selecte_num - notebook[choices[i]] for i in neighbors]
@@ -70,10 +79,10 @@ def random_neighbor(choices, notebook,selecte_num,selected_nodes):
         #print(new_node,choices[new_node])
         return [new_node, choices[new_node]]
 
-#print(subG.nodes())
+# loop to select node 
 while len(selected_nodes)<label_num*selecte_num:
+    # find a root from selected nodes as new_root
     new_root = random_neighbor(FS, notebook,selecte_num,selected_nodes)[0]
-    #print(new_root)
     if new_root != 0:
         choices = {i: subG.nodes[i]['label'] for i in subG.neighbors(new_root) if i not in selected_nodes}
         new_node_label = random_neighbor(choices, notebook,selecte_num,selected_nodes)
@@ -89,6 +98,7 @@ while len(selected_nodes)<label_num*selecte_num:
     FS[new_node_label[0]]=new_node_label[1]
     #print(FS)
 
+# construct our selected subgraph
 selected_subG =  subG.subgraph(selected_nodes)
 print('number of nodes per class : ',selecte_num)
 color_list = ['red', 'blue', 'pink', 'green', 'orange', 'black', 'grey']
@@ -100,9 +110,8 @@ options = {
 }
 nx.draw(selected_subG, **options)
 plt.show()
-# print(len(selected_subG.nodes()))
-# neighbors = [i for i in FS.keys()]
-# p = [selecte_num - notebook[FS[i]] for i in neighbors]
-# p = p/ sum(p)
-# print(neighbors)
-# print(notebook)
+
+sub_reselected = pd.DataFrame({'id':selected_nodes })
+sub_reselected.sort_values(by = ['id'], ascending= True,inplace= True)
+sub_reselected.to_csv('groupwork_synthesis\subgraph_node_sample.csv', index=False)
+
