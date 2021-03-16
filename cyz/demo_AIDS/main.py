@@ -17,9 +17,9 @@ def generate_data(file_data, show_graph=False):
     Generate training data, training labels(one-hot, 2d array), and the corresponding adjancency matrix
     Parameter: csv data file 
     Return:
-        nodes_attribute: 2d-array, shape=(num_nodes, num_features)
-        nodes_label: 2d-array, shape=(num_nodes, num_class), classfication of nodes (2 classes), one-hot encoding
-        Ad: Adjancency matrix, corresponding to the order of nodes in node_features
+        nodes_attribute: 2d-array, shape=(num_nodes, num_features) == (9,3)
+        nodes_label: 2d-array, shape=(num_nodes, num_class), classfication of nodes (2 classes), one-hot encoding == (9,2)
+        Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (9,9)
     '''
     data = pd.read_csv(file_data, sep=",")
     # V = 9 nodes
@@ -96,9 +96,9 @@ def train():
     print("useful parameter ratio in a weight matrix: {:.5f}".format(usefulParamRatio))
 
     # Kronecker products for weight matrix and bias recpectively
-    init_layer1_weight = np.kron(adjancency_mat, init_layer1_weight_block) # (9*8, 9*3)
+    init_layer1_weight = np.kron(adjancency_mat, init_layer1_weight_block) # (9*1, 9*3)
     init_layer1_bias = np.kron(np.ones(shape=(numNode,)), init_layer1_bias_block)
-    init_layer2_weight = np.kron(adjancency_mat, init_layer2_weight_block) # (9*2, 9*8)
+    init_layer2_weight = np.kron(adjancency_mat, init_layer2_weight_block) # (9*2, 9*1)
     init_layer2_bias = np.kron(np.ones(shape=(numNode,)), init_layer2_bias_block)
 
     # Reshape node_features and labels to fit batch_size = 1:  batch_x.shape=(1,numNode,numFeature), batch_y.shape=(1,numNode,numClass)
@@ -115,7 +115,7 @@ def train():
         print("Weight matrix shape:", model.layers[i].get_weights()[0].shape)
 
     # withConstraint: bool, whether or not applying Lipschitz constant constraint
-    withLipConstraint = False
+    withLipConstraint = True
     norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, withConstraint=withLipConstraint)
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
