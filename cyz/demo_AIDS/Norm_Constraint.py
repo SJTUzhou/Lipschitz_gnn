@@ -19,20 +19,15 @@ class Norm_Constraint(Callback):
         self.rho = 1.0
 
     def get_mask(self, Ad, index_weight):
-        # print('self N', self.N)
         adjency = Ad + np.eye(self.K, self.K) # This line is modified by CHEN
         unity = np.ones((self.N[index_weight - 1], self.N[index_weight - 2]))
         M = np.kron(adjency, unity)
-
-        # print('M shape', M.shape)
         return M
 
 
     def get_projection(self, w, Ad, index_weight):
         if type(Ad) is sparse.csr_matrix:
             Ad = Ad.toarray()
-
-        # print('Ad', Ad.shape, index_weight)
         # Element-wise multiplication
         return np.multiply(w, self.get_mask(Ad, index_weight))
 
@@ -100,8 +95,8 @@ class Norm_Constraint(Callback):
         
         # print weight matrix W
         for i in self.layers:
-            w_output_file = f"./weight_matrix/w_layer{i}_epoch{epoch}.out"
+            w_output_file = f"./weight_matrix/w_layer{i-1}_epoch{epoch}.out"
             w_mat = np.transpose(self.model.layers[i].get_weights()[0])
-            np.savetxt(w_output_file, w_mat, delimiter='\t',fmt='%1.4e')
+            np.savetxt(w_output_file, w_mat, delimiter='\t',fmt='%.1f')
     
         

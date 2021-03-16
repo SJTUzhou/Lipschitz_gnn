@@ -33,7 +33,7 @@ def generate_data(file_data, show_graph=False):
     scaler.fit(nodes_attribute)
     nodes_attribute = scaler.transform(nodes_attribute)
 
-    # E = 9 edges
+    # E = 8 edges
     edges = [(59, 60),(60, 61),(59, 62),(62, 63),(63, 64),(59, 65),(65, 66),(67, 66)]
 
     G = nx.Graph()
