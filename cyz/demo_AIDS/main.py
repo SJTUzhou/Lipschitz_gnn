@@ -12,7 +12,7 @@ from sklearn.preprocessing import MaxAbsScaler
 
 file_selected_data = "./data.txt"
 
-def generate_data(file_data, show_graph=False):
+def generate_data(file_data, show_graph=True):
     '''
     Generate training data, training labels(one-hot, 2d array), and the corresponding adjancency matrix
     Parameter: csv data file 
@@ -44,7 +44,19 @@ def generate_data(file_data, show_graph=False):
     A = nx.adjacency_matrix(G, nodelist=nodes_id)
     A = A.todense() 
     if show_graph:
-        nx.draw(G)
+        color_map = []
+        color_list = ['red', 'blue', 'pink', 'green', 'orange', 'black', 'grey']
+        for node in G:
+            node_label = data.loc[data['node_id']==node, 'node_label'].values[0]
+            node_color = color_list[node_label]
+            color_map.append(node_color)
+
+        options = {
+            'node_color': color_map,
+            'node_size': 30,
+            'width': 1,
+        }
+        nx.draw(G, **options)
         plt.show()
     print(nodes_label)
     return nodes_attribute, nodes_label, A
@@ -141,5 +153,5 @@ def delete_cache():
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 if __name__ == "__main__":
-    delete_cache
+    delete_cache()
     train()
