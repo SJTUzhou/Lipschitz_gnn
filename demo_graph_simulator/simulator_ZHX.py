@@ -56,6 +56,18 @@ def draw_3d_scatter(attributes, class_0, class_1):
     plt.show()
 
 
+def draw_3d_scatter_dataset(attributes, labels):
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    array_0 = attributes[labels==0,:]
+    array_1 = attributes[labels==1,:]
+    ax.scatter(array_0[:,0],array_0[:,1],array_0[:,2], marker='^', color='r')
+    ax.scatter(array_1[:,0],array_1[:,1],array_1[:,2], marker='o', color='b')
+    ax.set_xlabel('x1')
+    ax.set_ylabel('x2')
+    ax.set_zlabel('x3')
+    plt.show()
+
 
 def root(A):
     num_node = A.shape[0]
@@ -136,8 +148,8 @@ def generate_dataset(A,mu0,mu1,cov,size):
 if __name__ == "__main__":
     A = generate_random_Ad()
     mu0 = [0,0,0]
-    mu1 = [2,2,2]
-    cov = [[0.1,0,0],[0,0.1,0],[0,0,0.1]]
+    mu1 = [1,1,1]
+    cov = [[1,0,0],[0,1,0],[0,0,1]]
 
     attributes, labels, class_0, class_1 = generator(A,mu0,mu1,cov)
     draw_colored_graph(A, class_0, class_1)
@@ -146,4 +158,5 @@ if __name__ == "__main__":
     Attributes, Labels = generate_dataset(A,mu0,mu1,cov,100)
     print("node attribute shape: ", Attributes.shape)
     print("node label shape: ", Labels.shape)
+    draw_3d_scatter_dataset(Attributes, Labels)
 

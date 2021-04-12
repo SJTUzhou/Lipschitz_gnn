@@ -21,20 +21,22 @@ def generate_data(show_graph=True):
     '''
     Ad = simulator_ZHX.generate_random_Ad()
     mu0 = [0,0,0]
-    mu1 = [2,2,2]
-    cov = [[0.1,0,0],[0,0.1,0],[0,0,0.1]]
-
-    if show_graph:
-        attributes, labels, class_0, class_1 = simulator_ZHX.generator(Ad,mu0,mu1,cov)
-        simulator_ZHX.draw_colored_graph(A, class_0, class_1)
-        simulator_ZHX.draw_3d_scatter(attributes, list(class_0), list(class_1))
+    mu1 = [1,1,1]
+    cov = [[1,0,0],[0,1,0],[0,0,1]]
 
     num_graph = 1000
     Attributes, Labels = simulator_ZHX.generate_dataset(Ad,mu0,mu1,cov,num_graph)
+    if show_graph:
+        attributes, labels, class_0, class_1 = simulator_ZHX.generator(Ad,mu0,mu1,cov)
+        simulator_ZHX.draw_colored_graph(Ad, class_0, class_1)
+        # simulator_ZHX.draw_3d_scatter(attributes, list(class_0), list(class_1))
+        simulator_ZHX.draw_3d_scatter_dataset(Attributes, Labels)
+
     Labels = np.expand_dims(Labels, axis=2)
     Labels = np.concatenate((Labels, 1-Labels), axis=2)
     print("node attribute shape: ", Attributes.shape)
     print("node label shape: ", Labels.shape)
+    
     return Attributes, Labels, Ad
     
 
@@ -61,7 +63,7 @@ def get_model(X, N, weight_1, weight_2, bias_1, bias_2):
     return model
 
 def train():
-    node_features, labels, Ad = generate_data(show_graph=False)
+    node_features, labels, Ad = generate_data(show_graph=True)
 
     numGraph = node_features.shape[0]  
     numNode = node_features.shape[1]  
