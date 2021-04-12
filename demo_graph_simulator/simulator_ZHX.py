@@ -6,8 +6,8 @@ from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting
 
 
 
-def generate_random_Ad(show_graph=False):
-    _G = nx.erdos_renyi_graph(30, 0.1, seed=None, directed=False)
+def generate_random_Ad(show_graph=False,random_seed=None):
+    _G = nx.erdos_renyi_graph(30, 0.1, seed=random_seed, directed=False)
     Gcc = sorted(nx.connected_components(_G), key=len, reverse=True)
     G = _G.subgraph(Gcc[0])
     Ad = nx.adjacency_matrix(G, nodelist=G.nodes)

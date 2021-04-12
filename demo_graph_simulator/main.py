@@ -19,7 +19,7 @@ def generate_data(show_graph=True):
         Labels: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
         Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     '''
-    Ad = simulator_ZHX.generate_random_Ad()
+    Ad = simulator_ZHX.generate_random_Ad(show_graph=False, random_seed=111)
     mu0 = [0,0,0]
     mu1 = [1,1,1]
     cov = [[1,0,0],[0,1,0],[0,0,1]]
