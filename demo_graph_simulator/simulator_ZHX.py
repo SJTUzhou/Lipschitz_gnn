@@ -147,9 +147,9 @@ def generate_dataset(A,mu0,mu1,cov,size):
 
 if __name__ == "__main__":
     A = generate_random_Ad()
-    mu0 = [0,0,0]
-    mu1 = [1,1,1]
-    cov = [[1,0,0],[0,1,0],[0,0,1]]
+    mu0 = [0.1, 0.8, -0.1] # red
+    mu1 = [0.3, 1.2, -0.2] # blue
+    cov = [[1,0,0],[0,1,0],[0,0,1]] # red and blue
 
     attributes, labels, class_0, class_1 = generator(A,mu0,mu1,cov)
     draw_colored_graph(A, class_0, class_1)

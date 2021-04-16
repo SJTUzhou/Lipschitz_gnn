@@ -20,9 +20,9 @@ def generate_data(show_graph=True):
         Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     '''
     Ad = simulator_ZHX.generate_random_Ad(show_graph=False, random_seed=111)
-    mu0 = [0,0,0]
-    mu1 = [1,1,1]
-    cov = [[1,0,0],[0,1,0],[0,0,1]]
+    mu0 = [0.1, 0.8, -0.1] # red
+    mu1 = [0.3, 1.2, -0.2] # blue
+    cov = [[0.5,0,0],[0,0.5,0],[0,0,0.5]] # red and blue
 
     num_graph = 1000
     Attributes, Labels = simulator_ZHX.generate_dataset(Ad,mu0,mu1,cov,num_graph)
@@ -36,7 +36,9 @@ def generate_data(show_graph=True):
     Labels = np.concatenate((Labels, 1-Labels), axis=2)
     print("node attribute shape: ", Attributes.shape)
     print("node label shape: ", Labels.shape)
-    
+    np.save("Attributes.npy", Attributes)
+    np.save("Labels.npy", Labels)
+    np.save("Ad.npy", Ad)
     return Attributes, Labels, Ad
     
 
@@ -63,7 +65,8 @@ def get_model(X, N, weight_1, weight_2, bias_1, bias_2):
     return model
 
 def train():
-    node_features, labels, Ad = generate_data(show_graph=True)
+    # node_features, labels, Ad = generate_data(show_graph=True)
+    node_features, labels, Ad = np.load("Attributes.npy"), np.load("Labels.npy"), np.load("Ad.npy")
 
     numGraph = node_features.shape[0]  
     numNode = node_features.shape[1]  
@@ -117,10 +120,10 @@ def train():
     epochs = 100
     # We have not yet split data into training and validation part
     # because the batch size equals 1 and we cannot apply a training-validation ratio in model.fit() in this situation.
-    model.fit(x_train, y_train, epochs=epochs, batch_size=20, validation_split = 0.1, callbacks=[norm_constr_callback])
+    model.fit(x_train, y_train, epochs=epochs, batch_size=20, validation_split=0.1, callbacks=[norm_constr_callback])
     print("Evaluate on test data")
     results = model.evaluate(x_test, y_test, batch_size=20)
-    print("test loss, test acc:", results)
+    # print("test loss, test acc:", results)
 
 
 
@@ -141,4 +144,5 @@ def train():
 
 if __name__ == "__main__":
     # delete_cache()
+    # generate_data(show_graph=True)
     train()
