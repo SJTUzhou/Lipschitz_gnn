@@ -8,9 +8,11 @@ import pandas as pd
 import networkx as nx 
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MaxAbsScaler
+import datetime
 
 
-def generate_data(show_graph=True):
+
+def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True):
     '''
     Generate training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
         training one-hot labels with shape = (Num_graph, Num_node_per_graph, 2), and the corresponding adjancency matrix
@@ -19,12 +21,7 @@ def generate_data(show_graph=True):
         Labels: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
         Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     '''
-    Ad = simulator_ZHX.generate_random_Ad(show_graph=False, random_seed=111)
-    mu0 = [0.1, 0.8, -0.1] # red
-    mu1 = [0.3, 1.2, -0.2] # blue
-    cov = [[0.5,0,0],[0,0.5,0],[0,0,0.5]] # red and blue
-
-    num_graph = 1000
+    Ad = simulator_ZHX.generate_random_Ad(show_graph=False, random_seed=None)
     Attributes, Labels = simulator_ZHX.generate_dataset(Ad,mu0,mu1,cov,num_graph)
     if show_graph:
         attributes, labels, class_0, class_1 = simulator_ZHX.generator(Ad,mu0,mu1,cov)
@@ -36,11 +33,28 @@ def generate_data(show_graph=True):
     Labels = np.concatenate((Labels, 1-Labels), axis=2)
     print("node attribute shape: ", Attributes.shape)
     print("node label shape: ", Labels.shape)
-    np.save("Attributes.npy", Attributes)
-    np.save("Labels.npy", Labels)
-    np.save("Ad.npy", Ad)
     return Attributes, Labels, Ad
-    
+
+
+
+def train_test_data_split(node_features, labels, train_ratio=0.8):
+    """
+    Split dataset into training and test parts with a ratio
+    """
+    num_graph = node_features.shape[0]
+    train_test_split = int(train_ratio*num_graph)
+    x_train = node_features[:train_test_split,:,:] 
+    y_train = labels[:train_test_split,:,:] 
+    x_test = node_features[train_test_split:,:,:] 
+    y_test = labels[train_test_split:,:,:]
+    np.save("data/node_features_train.npy", x_train)
+    np.save("data/node_features_test.npy", x_test)
+    np.save("data/labels_train.npy", y_train)
+    np.save("data/labels_test.npy", y_test)
+    return x_train, x_test, y_train, y_test
+
+
+
 
 def get_model(X, N, weight_1, weight_2, bias_1, bias_2):
     '''
@@ -64,11 +78,16 @@ def get_model(X, N, weight_1, weight_2, bias_1, bias_2):
     model = Model(inputs=inputs, outputs=outputs)
     return model
 
-def train():
-    # node_features, labels, Ad = generate_data(show_graph=True)
-    node_features, labels, Ad = np.load("Attributes.npy"), np.load("Labels.npy"), np.load("Ad.npy")
 
-    numGraph = node_features.shape[0]  
+
+
+def train(x_train, y_train, Ad, withLipConstraint=True): 
+    """
+    x_train: 3d-array, shape=(Num_graph, Num_node_per_graph, Num_attribute_per_node)
+    y_train: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
+    Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
+    withConstraint: bool, whether or not applying Lipschitz constant constraint
+    """
     numNode = node_features.shape[1]  
     numFeature = node_features.shape[2] 
     numClass = labels.shape[2] 
@@ -95,12 +114,6 @@ def train():
     init_layer2_weight = np.kron(adjancency_mat, init_layer2_weight_block)
     init_layer2_bias = np.kron(np.ones(shape=(numNode,)), init_layer2_bias_block)
 
-    train_test_split = int(0.8*numGraph)
-    x_train = node_features[:train_test_split,:,:] 
-    y_train = labels[:train_test_split,:,:] 
-    x_test = node_features[train_test_split:,:,:] 
-    y_test = labels[train_test_split:,:,:] 
-
     model = get_model(x_train, N, \
         tf.constant_initializer(init_layer1_weight),\
         tf.constant_initializer(init_layer2_weight),\
@@ -110,39 +123,55 @@ def train():
     for i in range(2,4):
         print("Weight matrix shape:", model.layers[i].get_weights()[0].shape)
 
-    # withConstraint: bool, whether or not applying Lipschitz constant constraint
-    withLipConstraint = True
-    norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, withConstraint=withLipConstraint)
+    log_dir = ""
+    model_name = ""
+    if withLipConstraint:
+        log_dir = "logs/fit/" + "model-with-Lip-constr"
+        model_name = "saved_model/model_with_Lip_constr.h5"
+    else:
+        log_dir = "logs/fit/" + "model-without-Lip-constr"  # + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        model_name = "saved_model/model_without_Lip_constr.h5"
 
+    norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, withConstraint=withLipConstraint)
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+    
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
    
     epochs = 100
-    # We have not yet split data into training and validation part
-    # because the batch size equals 1 and we cannot apply a training-validation ratio in model.fit() in this situation.
-    model.fit(x_train, y_train, epochs=epochs, batch_size=20, validation_split=0.1, callbacks=[norm_constr_callback])
-    print("Evaluate on test data")
-    results = model.evaluate(x_test, y_test, batch_size=20)
-    # print("test loss, test acc:", results)
+    model.fit(x_train, y_train, epochs=epochs, batch_size=20, validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback], verbose=2)
+    model.save(model_name)
+    return model
 
 
-
-
-
-# import os, shutil
-# def delete_cache():
-#     folder = './weight_matrix/'
-#     for filename in os.listdir(folder):
-#         file_path = os.path.join(folder, filename)
-#         try:
-#             if os.path.isfile(file_path) or os.path.islink(file_path):
-#                 os.unlink(file_path)
-#             elif os.path.isdir(file_path):
-#                 shutil.rmtree(file_path)
-#         except Exception as e:
-#             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 if __name__ == "__main__":
-    # delete_cache()
-    # generate_data(show_graph=True)
-    train()
+    mu0 = [0.1, 0.8, -0.1] 
+    mu1 = [0.3, 1.2, -0.2] 
+    cov = [[0.5,0,0],[0,0.5,0],[0,0,0.5]]
+    num_graph = 1000
+    node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False)
+    x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
+
+    model_with_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=True)
+    model_without_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=False)
+
+    print("Evaluation of model WITH Lipschitz constant constraint on TRAIN data")
+    loss, acc = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
+    print("Loss: {:.4f}, accuracy: {:.4f}".format(loss,acc))
+
+    print("Evaluation of model WITH Lipschitz constant constraint on TEST data")
+    loss, acc = model_with_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
+    print("Loss: {:.4f}, accuracy: {:.4f}".format(loss,acc))
+
+
+    print("Evaluation of model WITHOUT Lipschitz constant constraint on TRAIN data")
+    loss, acc = model_without_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
+    print("Loss: {:.4f}, accuracy: {:.4f}".format(loss,acc))
+    
+    print("Evaluation of model WITHOUT Lipschitz constant constraint on TEST data")
+    loss, acc = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
+    print("Loss: {:.4f}, accuracy: {:.4f}".format(loss,acc))
+
+    # execute the following line in termianl to view the tensorboard
+    # tensorboard --logdir logs/fit
