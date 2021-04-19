@@ -67,7 +67,8 @@ class Norm_Constraint(Callback):
         w_new = self.get_projection(w, Ad, index_weight)
 
         return w_new
-    def on_epoch_end(self, epoch, logs={}):  # def on_batch_end(self, batch, logs={}):
+    
+    def on_batch_end(self, batch, logs={}):  # def on_batch_end(self, batch, logs={}):
         # With Lipschitz Constraint
         if self.withConstraint:
             A = np.eye(self.model.layers[self.layers[-1]].output_shape[1])

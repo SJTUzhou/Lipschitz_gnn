@@ -126,10 +126,10 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     log_dir = ""
     model_name = ""
     if withLipConstraint:
-        log_dir = "logs/fit/" + "model-with-Lip-constr"
+        log_dir = "logs/fit/" + "model-with-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_with_Lip_constr.h5"
     else:
-        log_dir = "logs/fit/" + "model-without-Lip-constr"  # + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_dir = "logs/fit/" + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_without_Lip_constr.h5"
 
     norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, withConstraint=withLipConstraint)
@@ -138,14 +138,30 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
    
-    epochs = 100
-    model.fit(x_train, y_train, epochs=epochs, batch_size=20, validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback], verbose=2)
+    epochs = 200
+    model.fit(x_train, y_train, epochs=epochs, batch_size=40, validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback], verbose=2)
     model.save(model_name)
     return model
 
 
 
+import os, shutil
+def delete_cache():
+    folder = './logs/fit/'
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
+
+
+
 if __name__ == "__main__":
+    delete_cache()
     mu0 = [0.1, 0.8, -0.1] 
     mu1 = [0.3, 1.2, -0.2] 
     cov = [[0.5,0,0],[0,0.5,0],[0,0,0.5]]
