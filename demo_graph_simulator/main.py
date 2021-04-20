@@ -166,7 +166,7 @@ if __name__ == "__main__":
     mu1 = [0.3, 1.2, -0.2] 
     cov = [[0.5,0,0],[0,0.5,0],[0,0,0.5]]
     num_graph = 1000
-    node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False)
+    node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=True)
     x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
 
     model_with_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=True)
@@ -191,3 +191,15 @@ if __name__ == "__main__":
 
     # execute the following line in termianl to view the tensorboard
     # tensorboard --logdir logs/fit
+
+    model = tf.keras.models.load_model("saved_model/model_with_Lip_constr.h5")
+    print("W2 shape:", model.layers[2].get_weights()[0].shape)
+    print("W3 shape:", model.layers[3].get_weights()[0].shape)
+    theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
+    print("theta_bar with Lip:",theta_bar)
+
+    model = tf.keras.models.load_model("saved_model/model_without_Lip_constr.h5")
+    print("W2 shape:", model.layers[2].get_weights()[0].shape)
+    print("W3 shape:", model.layers[3].get_weights()[0].shape)
+    theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
+    print("theta_bar without Lip:",theta_bar)

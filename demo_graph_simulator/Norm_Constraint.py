@@ -12,10 +12,10 @@ class Norm_Constraint(Callback):
         # Number of samples
         self.K = K
         # [Number of features per sample, Nums of neurons for every layer]
-        self.N = N # [129, 16, 7]
+        self.N = N 
         self.layers = [2, 3]
         # number of iteration to update weight matrix in one step
-        self.nit = 1
+        self.nit = 10
         self.rho = 1.0
 
     def get_mask(self, Ad, index_weight):
@@ -51,7 +51,7 @@ class Norm_Constraint(Callback):
             [u,s,v] = np.linalg.svd(T)
             # print(u.shape, s.shape, v.shape)
             criterion = np.linalg.norm(w_new - w, ord='fro')
-            constraint = np.linalg.norm(s[s > self.rho] - self.rho, ord=2)
+            constraint = np.linalg.norm(s[s > self.rho] - self.rho, ord=2) # a向量的L2范数 sqrt(a.T*a)
             Yt = Y + gam * T
             [u1, s1, v1] = np.linalg.svd(Yt / gam, full_matrices=False)
             s1 = np.clip(s1, 0, self.rho)
@@ -80,7 +80,7 @@ class Norm_Constraint(Callback):
                         B = np.transpose(self.model.layers[index_weight_B].get_weights()[0]) @ B
                 w = np.transpose(self.model.layers[index_weight].get_weights()[0])
                 wf = self.model.layers[index_weight].get_weights()
-                wf[0] = np.transpose(self.Constraint(w, A, B, 0.1, index_weight, self.Ad))
+                wf[0] = np.transpose(self.Constraint(w, A, B, 0.01, index_weight, self.Ad))
                 self.model.layers[index_weight].set_weights(wf)
                 A = A @ np.transpose(self.model.layers[index_weight].get_weights()[0])
         
