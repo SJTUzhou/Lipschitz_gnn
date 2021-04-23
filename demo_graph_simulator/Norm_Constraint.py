@@ -51,14 +51,14 @@ class Norm_Constraint(Callback):
             [u,s,v] = np.linalg.svd(T)
             # print(u.shape, s.shape, v.shape)
             criterion = np.linalg.norm(w_new - w, ord='fro')
-            constraint = np.linalg.norm(s[s > self.rho] - self.rho, ord=2) # a向量的L2范数 sqrt(a.T*a)
+            constraint = np.linalg.norm(s[s > self.rho] - self.rho, ord=2) # L2 norm sqrt(a.T*a) # rho = 1
             Yt = Y + gam * T
             [u1, s1, v1] = np.linalg.svd(Yt / gam, full_matrices=False)
             s1 = np.clip(s1, 0, self.rho)
             # print("s1", s1.shape)
             Svd_recons = u1 @ np.diag(s1) @ v1 # This line is modified by CHEN 
             Y = Yt - gam * Svd_recons
-            if (criterion < 100 and constraint < cnst):
+            if (criterion < 100 and constraint < cnst): # cnst:0.1
                 return w_new
         return w_new
 

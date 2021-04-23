@@ -161,7 +161,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
    
-    epochs = 5
+    epochs = 200
     model.fit(x_train, y_train, epochs=epochs, batch_size=40, validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback], verbose=2)
     model.save(model_name)
     return model
@@ -185,15 +185,15 @@ def delete_cache():
 
 if __name__ == "__main__":
     delete_cache()
-    mu0 = [0.1, 0.8, -0.1] 
-    mu1 = [0.3, 1.2, -0.2] 
-    cov = [[0.5,0,0],[0,0.5,0],[0,0,0.5]]
+    mu0 = [0.3, 0.7, -0.1] 
+    mu1 = [0.8, 1.2, -0.6] 
+    cov = [[1,0,0],[0,1,0],[0,0,1]]
     num_graph = 1000
 
     # Approach 1
-    node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
+    # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
     # Approach 2
-    # node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=True)
+    node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=True)
 
     x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
 
