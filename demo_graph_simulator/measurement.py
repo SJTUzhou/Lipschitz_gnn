@@ -12,7 +12,7 @@ import datetime
 
 
 
-def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True):
+def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=None):
     '''
     Generate training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
         training one-hot labels with shape = (Num_graph, Num_node_per_graph, 2), and the corresponding adjancency matrix
@@ -21,7 +21,7 @@ def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True):
         Labels: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
         Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     '''
-    Ad = simulator_ZHX.generate_random_Ad(show_graph=False, random_seed=None)
+    Ad = simulator_ZHX.generate_random_Ad(show_graph=False, random_seed=random_seed)
     Attributes, Labels = simulator_ZHX.generate_dataset(Ad,mu0,mu1,cov,num_graph)
     if show_graph:
         _,_,class_0,class_1 = simulator_ZHX.generator(Ad,mu0,mu1,cov)
@@ -104,7 +104,7 @@ def get_model(X, N, weight_1, weight_2, bias_1, bias_2):
 
 
 
-def train(x_train, y_train, Ad, withLipConstraint=True): 
+def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""): 
     """
     x_train: 3d-array, shape=(Num_graph, Num_node_per_graph, Num_attribute_per_node)
     y_train: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
@@ -149,10 +149,10 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     log_dir = ""
     model_name = ""
     if withLipConstraint:
-        log_dir = "logs/fit/" + "model-with-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_dir = "logs/fit{}/".format(log_id) + "model-with-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_with_Lip_constr.h5"
     else:
-        log_dir = "logs/fit/" + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_dir = "logs/fit{}/".format(log_id) + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_without_Lip_constr.h5"
 
     norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, withConstraint=withLipConstraint, applyFista=True)
@@ -170,7 +170,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
 import csv
 import os, shutil
 def delete_cache():
-    folder = './logs/fit/'
+    folder = './logs/'
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         try:
@@ -182,18 +182,17 @@ def delete_cache():
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
-def random_pick(low, high,s):
+def random_pick(low, high, s):
     return np.random.uniform(low,high,size=s),np.random.uniform(low,high,size=s)
 
 
 if __name__ == "__main__":
-    
-    # with open("result.csv","a") as csvfile:
-    #     writer = csv.writer(csvfile)
-    #     writer.writerow(["overlap ratio","train loss with L","test loss with L","train loss without L","test loss without L"])
-    NUM_TEST = 20
-    for _ in range(NUM_TEST):
-        delete_cache()
+    delete_cache()
+    with open("result.csv","w",newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["std","mu0[0]","mu0[1]","mu0[2]","mu1[0]","mu1[1]","mu1[2]","overlap ratio","train loss with L","test loss with L","train loss without L","test loss without L"])
+    NUM_TEST = 50
+    for i in range(NUM_TEST):
         mu0,mu1 = random_pick(-2,2,3)
         std = 1
         cov = [[std**2,0,0],[0,std**2,0],[0,0,std**2]]
@@ -203,12 +202,12 @@ if __name__ == "__main__":
         # Approach 1
         # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
         # Approach 2
-        node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False)
+        node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
 
         x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
 
-        model_with_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=True)
-        model_without_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=False)
+        model_with_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=True, log_id=i)
+        model_without_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=False, log_id=i)
 
         print("Evaluation of model WITH Lipschitz constant constraint on TRAIN data")
         loss_train_L, acc_train_L = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
@@ -242,6 +241,6 @@ if __name__ == "__main__":
         theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
         print("theta_bar without Lip:",theta_bar)
 
-        with open("result.csv","a") as csvfile:
+        with open("result.csv","a",newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([overlap_ratio,loss_train_L,loss_test_L,loss_train_WL,loss_test_WL])
+            writer.writerow([std,mu0[0],mu0[1],mu0[2],mu1[0],mu1[1],mu1[2],overlap_ratio,loss_train_L,loss_test_L,loss_train_WL,loss_test_WL])
