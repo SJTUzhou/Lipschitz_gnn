@@ -188,9 +188,9 @@ def random_pick(low, high,s):
 
 if __name__ == "__main__":
     
-    with open("result.csv","a") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["overlap ratio","train loss with L","test loss with L","train loss without L","test loss without L"])
+    # with open("result.csv","a") as csvfile:
+    #     writer = csv.writer(csvfile)
+    #     writer.writerow(["overlap ratio","train loss with L","test loss with L","train loss without L","test loss without L"])
     NUM_TEST = 20
     for _ in range(NUM_TEST):
         delete_cache()
