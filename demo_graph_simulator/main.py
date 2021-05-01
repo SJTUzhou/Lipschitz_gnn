@@ -1,4 +1,4 @@
-from Norm_Constraint import Norm_Constraint
+from Norm_Constraint_Fista import Norm_Constraint
 import simulator_ZHX
 import tensorflow as tf
 from tensorflow.keras import Model
