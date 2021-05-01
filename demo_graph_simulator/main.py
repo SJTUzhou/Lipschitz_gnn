@@ -155,7 +155,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
         log_dir = "logs/fit/" + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_without_Lip_constr.h5"
 
-    norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, withConstraint=withLipConstraint)
+    norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, withConstraint=withLipConstraint, applyFista=True)
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
