@@ -12,7 +12,7 @@ import datetime
 
 
 
-def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True):
+def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=None):
     '''
     Generate training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
         training one-hot labels with shape = (Num_graph, Num_node_per_graph, 2), and the corresponding adjancency matrix
@@ -21,7 +21,7 @@ def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True):
         Labels: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
         Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     '''
-    Ad = simulator_ZHX.generate_random_Ad(show_graph=False, random_seed=None)
+    Ad = simulator_ZHX.generate_random_Ad(show_graph=False, random_seed=random_seed)
     Attributes, Labels = simulator_ZHX.generate_dataset(Ad,mu0,mu1,cov,num_graph)
     if show_graph:
         _,_,class_0,class_1 = simulator_ZHX.generator(Ad,mu0,mu1,cov)
@@ -161,7 +161,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
    
-    epochs = 200
+    epochs = 100
     model.fit(x_train, y_train, epochs=epochs, batch_size=40, validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback], verbose=2)
     model.save(model_name)
     return model
@@ -193,9 +193,14 @@ if __name__ == "__main__":
     # Approach 1
     # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
     # Approach 2
-    node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=True)
+    node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
 
-    x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
+    # x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
+
+    # Load data 
+    x_train, x_test, y_train, y_test = np.load("./data/node_features_train.npy"), np.load("./data/node_features_test.npy"),\
+         np.load("./data/labels_train.npy"), np.load("./data/labels_test.npy")
+    print(x_train.shape)
 
     model_with_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=True)
     model_without_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=False)
