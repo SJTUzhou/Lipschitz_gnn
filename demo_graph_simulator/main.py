@@ -32,6 +32,7 @@ def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=No
     Labels = np.concatenate((Labels, 1-Labels), axis=2)
     print("node attribute shape: ", Attributes.shape)
     print("node label shape: ", Labels.shape)
+    np.save("data/Ad.npy", Ad)
     return Attributes, Labels, Ad
 
 
@@ -112,9 +113,9 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     withConstraint: bool, whether or not applying Lipschitz constant constraint
     """
-    numNode = node_features.shape[1]  
-    numFeature = node_features.shape[2] 
-    numClass = labels.shape[2] 
+    numNode = x_train.shape[1]  
+    numFeature = x_train.shape[2] 
+    numClass = y_train.shape[2] 
 
     # num of neuron per block (small W) in hidden layer
     numN1 = 16
@@ -202,8 +203,8 @@ if __name__ == "__main__":
     # Approach 1
     # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
     # Approach 2
-    node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
-
+    # node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
+    Ad = np.load("./data/Ad.npy")
     # x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
 
     # Load data 
@@ -237,11 +238,11 @@ if __name__ == "__main__":
     model = tf.keras.models.load_model("saved_model/model_with_Lip_constr.h5")
     print("W2 shape:", model.layers[2].get_weights()[0].shape)
     print("W3 shape:", model.layers[3].get_weights()[0].shape)
-    theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
+    theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0] @ model.layers[4].get_weights()[0], ord=2) 
     print("theta_bar with Lip:",theta_bar)
 
     model = tf.keras.models.load_model("saved_model/model_without_Lip_constr.h5")
     print("W2 shape:", model.layers[2].get_weights()[0].shape)
     print("W3 shape:", model.layers[3].get_weights()[0].shape)
-    theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
+    theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0] @ model.layers[4].get_weights()[0], ord=2) 
     print("theta_bar without Lip:",theta_bar)
