@@ -15,7 +15,7 @@ class Norm_Constraint(Callback):
         self.K = K
         # [Number of features per sample, Nums of neurons for every layer]
         self.N = N 
-        self.layers = [2, 3]
+        self.layers = [2, 3, 4]
         # number of iteration to update weight matrix in one step
         self.nit = 10
         self.rho = 1.0 # theta_bar

@@ -79,7 +79,7 @@ def train_test_data_split(node_features, labels, train_ratio=0.8):
 
 
 
-def get_model(X, N, weight_1, weight_2, bias_1, bias_2):
+def get_model(X, N, weight_1, weight_2,weight_3, bias_1, bias_2,bias_3):
     '''
     Parameter:
         X = 3D-array (1, numNode, numFeature)
@@ -94,8 +94,9 @@ def get_model(X, N, weight_1, weight_2, bias_1, bias_2):
     reshape_inputs = Reshape((numNode*numFeature,))(inputs) # reshape_inputs shape 
     layer1_output = Dense(numNode * N[1], activation='relu', kernel_initializer=weight_1, bias_initializer=bias_1)(reshape_inputs)
     layer2_output = Dense(numNode * N[2], activation='relu', kernel_initializer=weight_2, bias_initializer=bias_2)(layer1_output) # layer2_output shape 
-    reshape_layer2_output = Reshape((X.shape[1], N[2]))(layer2_output) # reshape_layer2_output shape
-    outputs = Activation('softmax')(reshape_layer2_output) # outputs shape 
+    layer3_output = Dense(numNode * N[3], activation='relu', kernel_initializer=weight_3, bias_initializer=bias_3)(layer2_output)
+    reshape_layer3_output = Reshape((X.shape[1], N[3]))(layer3_output) # reshape_layer2_output shape
+    outputs = Activation('softmax')(reshape_layer3_output) # outputs shape 
     print('outputs', outputs.shape)
 
     model = Model(inputs=inputs, outputs=outputs)
@@ -117,14 +118,17 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
 
     # num of neuron per block (small W) in hidden layer
     numN1 = 16
+    numN2 = 8
     # num of neurons per block
-    N = [numFeature, numN1, numClass] 
+    N = [numFeature, numN1, numN2, numClass] 
 
     # initialize weight and bias block for one node
     init_layer1_weight_block = np.random.uniform(low=0.1, high=1.0, size=(numN1, numFeature)) # layer1_weight_block shape (numN1,3)
     init_layer1_bias_block = np.zeros(shape=(numN1,))
-    init_layer2_weight_block = np.random.uniform(low=0.1, high=1.0, size=(numClass, numN1)) # layer2_weight_block shape (2,numN1)
-    init_layer2_bias_block = np.zeros(shape=(numClass,))
+    init_layer2_weight_block = np.random.uniform(low=0.1, high=1.0, size=(numN2, numN1)) # layer2_weight_block shape (2,numN1)
+    init_layer2_bias_block = np.zeros(shape=(numN2,))
+    init_layer3_weight_block = np.random.uniform(low=0.1, high=1.0, size=(numClass, numN2)) # layer1_weight_block shape (numN1,3)
+    init_layer3_bias_block = np.zeros(shape=(numClass,))
 
     # initialize weight and bias matrix for all the nodes
     adjancency_mat = Ad + np.eye(numNode) # Add an identity matrix to adjancency matrix
@@ -134,16 +138,21 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     # Kronecker products for weight matrix and bias recpectively
     init_layer1_weight = np.kron(adjancency_mat, init_layer1_weight_block) 
     init_layer1_bias = np.kron(np.ones(shape=(numNode,)), init_layer1_bias_block)
+
     init_layer2_weight = np.kron(adjancency_mat, init_layer2_weight_block)
     init_layer2_bias = np.kron(np.ones(shape=(numNode,)), init_layer2_bias_block)
 
+    init_layer3_weight = np.kron(adjancency_mat, init_layer3_weight_block) 
+    init_layer3_bias = np.kron(np.ones(shape=(numNode,)), init_layer3_bias_block)
     model = get_model(x_train, N, \
         tf.constant_initializer(init_layer1_weight),\
         tf.constant_initializer(init_layer2_weight),\
+        tf.constant_initializer(init_layer3_weight),\
         tf.constant_initializer(init_layer1_bias),\
-        tf.constant_initializer(init_layer2_bias))
+        tf.constant_initializer(init_layer2_bias),\
+        tf.constant_initializer(init_layer3_bias))
 
-    for i in range(2,4):
+    for i in range(2,5):
         print("Weight matrix shape:", model.layers[i].get_weights()[0].shape)
 
     log_dir = ""
