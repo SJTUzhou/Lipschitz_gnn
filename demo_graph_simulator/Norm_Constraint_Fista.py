@@ -4,7 +4,7 @@ from scipy import sparse
 
 class Norm_Constraint(Callback):
     
-    def __init__(self, model, Ad, K, N, withConstraint=False, applyFista=True):
+    def __init__(self, model, Ad, K, N, layers=[2,3], withConstraint=False, applyFista=True):
         # Whether has Lipschitz Constraint
         self.withConstraint = withConstraint
         # Whether using the accelerated version Fista
@@ -15,7 +15,7 @@ class Norm_Constraint(Callback):
         self.K = K
         # [Number of features per sample, Nums of neurons for every layer]
         self.N = N 
-        self.layers = [2, 3, 4]
+        self.layers = layers
         # number of iteration to update weight matrix in one step
         self.nit = 10
         self.rho = 1.0 # theta_bar

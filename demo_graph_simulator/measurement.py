@@ -155,7 +155,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
         log_dir = "logs/fit{}/".format(log_id) + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_without_Lip_constr.h5"
 
-    norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, withConstraint=withLipConstraint, applyFista=True)
+    norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, layers=[2,3], withConstraint=withLipConstraint, applyFista=True)
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -190,11 +190,13 @@ if __name__ == "__main__":
     delete_cache()
     with open("result.csv","w",newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["std","mu0[0]","mu0[1]","mu0[2]","mu1[0]","mu1[1]","mu1[2]","overlap ratio","train loss with L","test loss with L","train loss without L","test loss without L"])
-    NUM_TEST = 50
+        writer.writerow(["std","mu0[0]","mu0[1]","mu0[2]","mu1[0]","mu1[1]","mu1[2]","overlap ratio",\
+            "train loss with L","test loss with L","train loss without L","test loss without L",\
+            "train acc with L","test acc with L","train acc without L","test acc without L"])
+    NUM_TEST = 100
     for i in range(NUM_TEST):
         mu0,mu1 = random_pick(-2,2,3)
-        std = 1
+        std = np.random.uniform(0.5,2.5)
         cov = [[std**2,0,0],[0,std**2,0],[0,0,std**2]]
         overlap_ratio = std/np.linalg.norm(mu0-mu1, ord=2)
         num_graph = 1000
@@ -243,4 +245,6 @@ if __name__ == "__main__":
 
         with open("result.csv","a",newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([std,mu0[0],mu0[1],mu0[2],mu1[0],mu1[1],mu1[2],overlap_ratio,loss_train_L,loss_test_L,loss_train_WL,loss_test_WL])
+            writer.writerow([std,mu0[0],mu0[1],mu0[2],mu1[0],mu1[1],mu1[2],overlap_ratio,\
+                loss_train_L,loss_test_L,loss_train_WL,loss_test_WL,\
+                acc_train_L,acc_test_L,acc_train_WL,acc_test_WL])
