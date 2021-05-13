@@ -10,6 +10,7 @@ def plot_result_of_one_model():
     df = pd.read_csv(RESULT_FILE, delimiter=",")
 
     array_ratio = 1./df["overlap ratio"].to_numpy()
+
     array_train_loss_with_Lip = df["train loss with L"].to_numpy()
     array_test_loss_with_Lip = df["test loss with L"].to_numpy()
     array_train_loss_without_Lip = df["train loss without L"].to_numpy()
