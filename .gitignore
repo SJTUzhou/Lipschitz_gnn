@@ -168,8 +168,12 @@ $RECYCLE.BIN/
 
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
-.old
 
+
+
+
+.old/
 data/
 logs/
 saved_model/
+backup/
