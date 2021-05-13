@@ -32,7 +32,6 @@ def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=No
     Labels = np.concatenate((Labels, 1-Labels), axis=2)
     print("node attribute shape: ", Attributes.shape)
     print("node label shape: ", Labels.shape)
-    np.save("data/Ad.npy", Ad)
     return Attributes, Labels, Ad
 
 
@@ -105,21 +104,20 @@ def get_model(X, N, weight_1, weight_2,weight_3, bias_1, bias_2,bias_3):
 
 
 
-
-def train(x_train, y_train, Ad, withLipConstraint=True): 
+def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""): 
     """
     x_train: 3d-array, shape=(Num_graph, Num_node_per_graph, Num_attribute_per_node)
     y_train: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
     Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     withConstraint: bool, whether or not applying Lipschitz constant constraint
     """
-    numNode = x_train.shape[1]  
-    numFeature = x_train.shape[2] 
-    numClass = y_train.shape[2] 
+    numNode = node_features.shape[1]  
+    numFeature = node_features.shape[2] 
+    numClass = labels.shape[2] 
 
     # num of neuron per block (small W) in hidden layer
-    numN1 = 16
-    numN2 = 8
+    numN1 = 8
+    numN2 = 16
     # num of neurons per block
     N = [numFeature, numN1, numN2, numClass] 
 
@@ -159,10 +157,10 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     log_dir = ""
     model_name = ""
     if withLipConstraint:
-        log_dir = "logs/fit/" + "model-with-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_dir = "logs/fit{}/".format(log_id) + "model-with-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_with_Lip_constr.h5"
     else:
-        log_dir = "logs/fit/" + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_dir = "logs/fit{}/".format(log_id) + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_without_Lip_constr.h5"
 
     norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, layers=[2,3,4], withConstraint=withLipConstraint, applyFista=True)
@@ -177,10 +175,10 @@ def train(x_train, y_train, Ad, withLipConstraint=True):
     return model
 
 
-
+import csv
 import os, shutil
 def delete_cache():
-    folder = './logs/fit/'
+    folder = './logs/'
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         try:
@@ -192,59 +190,71 @@ def delete_cache():
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
+def random_pick(low, high, s):
+    return np.random.uniform(low,high,size=s),np.random.uniform(low,high,size=s)
+
 
 if __name__ == "__main__":
     delete_cache()
-    mu0 = [0.3, 0.7, -0.1] 
-    mu1 = [0.8, 1.2, -0.6] 
-    cov = [[1,0,0],[0,1,0],[0,0,1]]
-    num_graph = 1000
+    with open("result.csv","w",newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["std","mu0[0]","mu0[1]","mu0[2]","mu1[0]","mu1[1]","mu1[2]","overlap ratio",\
+            "train loss with L","test loss with L","train loss without L","test loss without L",\
+            "train acc with L","test acc with L","train acc without L","test acc without L"])
+    NUM_TEST = 100
+    for i in range(NUM_TEST):
+        mu0,mu1 = random_pick(-2,2,3)
+        std = np.random.uniform(0.5,2.5)
+        cov = [[std**2,0,0],[0,std**2,0],[0,0,std**2]]
+        overlap_ratio = std/np.linalg.norm(mu0-mu1, ord=2)
+        num_graph = 1000
 
-    # Approach 1
-    # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
-    # Approach 2
-    # node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
-    Ad = np.load("./data/Ad.npy")
-    # x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
+        # Approach 1
+        # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
+        # Approach 2
+        node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
 
-    # Load data 
-    x_train, x_test, y_train, y_test = np.load("./data/node_features_train.npy"), np.load("./data/node_features_test.npy"),\
-         np.load("./data/labels_train.npy"), np.load("./data/labels_test.npy")
-    print(x_train.shape)
+        x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
 
-    model_with_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=True)
-    model_without_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=False)
+        model_with_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=True, log_id=i)
+        model_without_Lip_constr = train(x_train, y_train, Ad, withLipConstraint=False, log_id=i)
 
-    print("Evaluation of model WITH Lipschitz constant constraint on TRAIN data")
-    loss, acc = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
-    print("Loss: {:.4f}, accuracy: {:.4f}".format(loss,acc))
+        print("Evaluation of model WITH Lipschitz constant constraint on TRAIN data")
+        loss_train_L, acc_train_L = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_L,acc_train_L))
 
-    print("Evaluation of model WITH Lipschitz constant constraint on TEST data")
-    loss, acc = model_with_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
-    print("Loss: {:.4f}, accuracy: {:.4f}".format(loss,acc))
+        print("Evaluation of model WITH Lipschitz constant constraint on TEST data")
+        loss_test_L, acc_test_L = model_with_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_L,acc_test_L))
 
 
-    print("Evaluation of model WITHOUT Lipschitz constant constraint on TRAIN data")
-    loss, acc = model_without_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
-    print("Loss: {:.4f}, accuracy: {:.4f}".format(loss,acc))
-    
-    print("Evaluation of model WITHOUT Lipschitz constant constraint on TEST data")
-    loss, acc = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
-    print("Loss: {:.4f}, accuracy: {:.4f}".format(loss,acc))
+        print("Evaluation of model WITHOUT Lipschitz constant constraint on TRAIN data")
+        loss_train_WL, acc_train_WL = model_without_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_WL,acc_train_WL))
+        
+        print("Evaluation of model WITHOUT Lipschitz constant constraint on TEST data")
+        loss_test_WL, acc_test_WL = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_WL,acc_test_WL))
 
-    # execute the following line in termianl to view the tensorboard
-    # tensorboard --logdir logs/fit
+        # execute the following line in termianl to view the tensorboard
+        # tensorboard --logdir logs/fit
 
-    model = tf.keras.models.load_model("saved_model/model_with_Lip_constr.h5")
-    print("W2 shape:", model.layers[2].get_weights()[0].shape)
-    print("W3 shape:", model.layers[3].get_weights()[0].shape)
-    print("W4 shape:", model.layers[4].get_weights()[0].shape)
-    theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0] @ model.layers[4].get_weights()[0], ord=2) 
-    print("theta_bar with Lip:",theta_bar)
+        model = tf.keras.models.load_model("saved_model/model_with_Lip_constr.h5")
+        print("W2 shape:", model.layers[2].get_weights()[0].shape)
+        print("W3 shape:", model.layers[3].get_weights()[0].shape)
+        print("W4 shape:", model.layers[4].get_weights()[0].shape)
+        theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0] @ model.layers[4].get_weights()[0], ord=2) 
+        print("theta_bar with Lip:",theta_bar)
 
-    model = tf.keras.models.load_model("saved_model/model_without_Lip_constr.h5")
-    print("W2 shape:", model.layers[2].get_weights()[0].shape)
-    print("W3 shape:", model.layers[3].get_weights()[0].shape)
-    print("W4 shape:", model.layers[4].get_weights()[0].shape)
-    theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0] @ model.layers[4].get_weights()[0], ord=2) 
-    print("theta_bar without Lip:",theta_bar)
+        model = tf.keras.models.load_model("saved_model/model_without_Lip_constr.h5")
+        print("W2 shape:", model.layers[2].get_weights()[0].shape)
+        print("W3 shape:", model.layers[3].get_weights()[0].shape)
+        print("W4 shape:", model.layers[4].get_weights()[0].shape)
+        theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0] @ model.layers[4].get_weights()[0], ord=2) 
+        print("theta_bar without Lip:",theta_bar)
+
+        with open("result.csv","a",newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([std,mu0[0],mu0[1],mu0[2],mu1[0],mu1[1],mu1[2],overlap_ratio,\
+                loss_train_L,loss_test_L,loss_train_WL,loss_test_WL,\
+                acc_train_L,acc_test_L,acc_train_WL,acc_test_WL])
