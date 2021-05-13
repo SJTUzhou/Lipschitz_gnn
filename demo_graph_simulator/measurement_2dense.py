@@ -36,7 +36,7 @@ def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=No
 
 
 import simulator_once
-def generate_data_same_cut(mu0, mu1, cov, num_graph=1000, show_graph=True):
+def generate_data_same_cut(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=None):
     '''
     the graph topology and the label of node in each graph are the same
     Generate training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
@@ -46,7 +46,7 @@ def generate_data_same_cut(mu0, mu1, cov, num_graph=1000, show_graph=True):
         Labels: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
         Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     '''
-    Ad = simulator_once.generate_random_Ad(show_graph=False, random_seed=None)
+    Ad = simulator_once.generate_random_Ad(show_graph=False, random_seed=random_seed)
     class0, class1 = simulator_once.cut_subgraph(Ad)
     Attributes, Labels = simulator_once.generate_dataset(class0,class1,Ad,mu0,mu1,cov,num_graph)
     if show_graph:
@@ -161,7 +161,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
    
-    epochs = 100
+    epochs = 30
     model.fit(x_train, y_train, epochs=epochs, batch_size=40, validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback], verbose=2)
     model.save(model_name)
     return model
@@ -201,10 +201,10 @@ if __name__ == "__main__":
         overlap_ratio = std/np.linalg.norm(mu0-mu1, ord=2)
         num_graph = 1000
 
-        # Approach 1
-        # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
+        # Approach 1: Same cut in each graph
+        node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
         # Approach 2
-        node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
+        # node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
 
         x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
 
