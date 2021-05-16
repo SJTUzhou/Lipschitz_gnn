@@ -11,7 +11,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MaxAbsScaler, OneHotEncoder
 import datetime
-
+import sys
 
 def generate_complex_data(means, cov, num_graph=1000, random_seed=None):
     '''
@@ -220,14 +220,18 @@ def generate_mean_values(num_class):
 
 
 if __name__ == "__main__":
-    delete_cache()
-    with open("result.csv","w",newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["std","means","overlap ratio",\
-            "train loss with L","test loss with L","train loss without L","test loss without L",\
-            "train acc with L","test acc with L","train acc without L","test acc without L"])
-    NUM_TEST = 100
-    for i in range(NUM_TEST):
+    start_i = 0
+    if len(sys.argv) >= 2:
+        start_i = int(sys.argv[1])
+    else:
+        delete_cache()
+        with open("result.csv","w",newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["std","means","overlap ratio",\
+                "train loss with L","test loss with L","train loss without L","test loss without L",\
+                "train acc with L","test acc with L","train acc without L","test acc without L"])
+    NUM_TEST = 50
+    for i in range(start_i, NUM_TEST):
         num_class = 5
         means = generate_mean_values(num_class)
         std = np.random.uniform(0.5,2.5)

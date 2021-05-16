@@ -44,7 +44,7 @@ def plot_result_of_one_model():
     ax2.set_xlabel("||Mu_0-Mu_1|| / std_dev")
     ax2.set_ylabel("accuracy")
     ax2.set_xlim(left=0)
-    ax2.set_ylim(bottom=0.5)
+    ax2.set_ylim(bottom=0)
 
     plt.show()
 
@@ -93,7 +93,7 @@ def plot_result_comparison():
     ax2.set_xlabel("||Mu_0-Mu_1|| / std_dev")
     ax2.set_ylabel("accuracy")
     ax2.set_xlim(left=0)
-    ax2.set_ylim(bottom=0.5)
+    ax2.set_ylim(bottom=0)
     plt.show()
 
 
