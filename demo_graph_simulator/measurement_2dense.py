@@ -1,5 +1,7 @@
 from Norm_Constraint_Fista import Norm_Constraint
 import simulator_ZHX
+import simulator_once
+import complex_generator
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Reshape, Input, Dense, Activation
@@ -7,14 +9,35 @@ import numpy as np
 import pandas as pd
 import networkx as nx 
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MaxAbsScaler
+from sklearn.preprocessing import MaxAbsScaler, OneHotEncoder
 import datetime
+import sys
 
+def generate_complex_data(means, cov, num_graph=1000, random_seed=None):
+    '''
+    Generate multiple-class training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
+        training one-hot labels with shape = (Num_graph, Num_node_per_graph, Num_class), and the corresponding adjancency matrix
+    Return:
+        Attributes: 3d-array, shape=(Num_graph, Num_node_per_graph, Num_attribute_per_node)
+        onehot_encoded_labels: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, Num_class), classfication of nodes
+        Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
+    '''
+    num_class = len(means)
+    Ad = complex_generator.generate_random_Ad(show_graph=False, random_seed=random_seed)
+    Attributes, Labels = complex_generator.generate_dataset(A=Ad, num_class=num_class, size=num_graph, means=means, cov=cov)
+    Labels = np.expand_dims(Labels, axis=2)
+    onehot_encoder = OneHotEncoder(sparse=False)
+    onehot_encoded_labels = np.zeros(shape=(Labels.shape[0],Labels.shape[1],num_class))
+    for i in range(num_graph):
+        onehot_encoded_labels[i,:,:] = onehot_encoder.fit_transform(Labels[i,:,:])
+    print("node attribute shape: ", Attributes.shape)
+    print("node label shape: ", Labels.shape)
+    return Attributes, onehot_encoded_labels, Ad
 
 
 def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=None):
     '''
-    Generate training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
+    Generate 2-class training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
         training one-hot labels with shape = (Num_graph, Num_node_per_graph, 2), and the corresponding adjancency matrix
     Return:
         Attributes: 3d-array, shape=(Num_graph, Num_node_per_graph, Num_attribute_per_node)
@@ -35,18 +58,18 @@ def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=No
     return Attributes, Labels, Ad
 
 
-import simulator_once
-def generate_data_same_cut(mu0, mu1, cov, num_graph=1000, show_graph=True):
+
+def generate_data_same_cut(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=None):
     '''
     the graph topology and the label of node in each graph are the same
-    Generate training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
+    Generate 2-class training data with shape = (Num_graph, Num_node_per_graph, Num_attribute_per_node), 
         training one-hot labels with shape = (Num_graph, Num_node_per_graph, 2), and the corresponding adjancency matrix
     Return:
         Attributes: 3d-array, shape=(Num_graph, Num_node_per_graph, Num_attribute_per_node)
         Labels: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
         Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     '''
-    Ad = simulator_once.generate_random_Ad(show_graph=False, random_seed=None)
+    Ad = simulator_once.generate_random_Ad(show_graph=False, random_seed=random_seed)
     class0, class1 = simulator_once.cut_subgraph(Ad)
     Attributes, Labels = simulator_once.generate_dataset(class0,class1,Ad,mu0,mu1,cov,num_graph)
     if show_graph:
@@ -143,7 +166,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
         tf.constant_initializer(init_layer1_bias),\
         tf.constant_initializer(init_layer2_bias))
 
-    for i in range(2,4):
+    for i in range(2,4): # layer 0 -> input layer; layer 1 -> reshape layer; layers 2&3 -> Dense layers
         print("Weight matrix shape:", model.layers[i].get_weights()[0].shape)
 
     log_dir = ""
@@ -182,29 +205,48 @@ def delete_cache():
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
-def random_pick(low, high, s):
-    return np.random.uniform(low,high,size=s),np.random.uniform(low,high,size=s)
+def compute_ovelapping_ratio(means, std):
+    """compute the ratio of standard deviation to the sum of difference of mean values of each pair classes"""
+    num_class = len(means)
+    sum_dist_mean = 0
+    for i in range(num_class):
+        for j in range(i, num_class):
+            sum_dist_mean += np.linalg.norm(means[i]-means[j], ord=2)
+    return std/sum_dist_mean
+
+
+def generate_mean_values(num_class):
+    return [np.random.uniform(low=-2,high=2,size=3) for _ in range(num_class)]
 
 
 if __name__ == "__main__":
-    delete_cache()
-    with open("result.csv","w",newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["std","mu0[0]","mu0[1]","mu0[2]","mu1[0]","mu1[1]","mu1[2]","overlap ratio",\
-            "train loss with L","test loss with L","train loss without L","test loss without L",\
-            "train acc with L","test acc with L","train acc without L","test acc without L"])
-    NUM_TEST = 100
-    for i in range(NUM_TEST):
-        mu0,mu1 = random_pick(-2,2,3)
+    start_i = 0
+    if len(sys.argv) >= 2:
+        start_i = int(sys.argv[1])
+    else:
+        delete_cache()
+        with open("result.csv","w",newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["std","means","overlap ratio",\
+                "train loss with L","test loss with L","train loss without L","test loss without L",\
+                "train acc with L","test acc with L","train acc without L","test acc without L"])
+    NUM_TEST = 50
+    for i in range(start_i, NUM_TEST):
+        num_class = 5
+        means = generate_mean_values(num_class)
         std = np.random.uniform(0.5,2.5)
         cov = [[std**2,0,0],[0,std**2,0],[0,0,std**2]]
-        overlap_ratio = std/np.linalg.norm(mu0-mu1, ord=2)
+        overlap_ratio = compute_ovelapping_ratio(means, std)
         num_graph = 1000
 
-        # Approach 1
-        # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=True)
-        # Approach 2
-        node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
+        # Approach 1: Same cut in each graph, 2-class
+        # mu0, mu1 = means[0], means[1]
+        # node_features, labels, Ad = generate_data_same_cut(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
+        # Approach 2: Different cut in each graph, 2-class
+        # mu0, mu1 = means[0], means[1]
+        # node_features, labels, Ad = generate_data(mu0, mu1, cov, num_graph, show_graph=False, random_seed=123)
+        # Approach 3
+        node_features, labels, Ad = generate_complex_data(means, cov, num_graph, random_seed=123)
 
         x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
 
@@ -245,6 +287,6 @@ if __name__ == "__main__":
 
         with open("result.csv","a",newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([std,mu0[0],mu0[1],mu0[2],mu1[0],mu1[1],mu1[2],overlap_ratio,\
+            writer.writerow([std,means,overlap_ratio,\
                 loss_train_L,loss_test_L,loss_train_WL,loss_test_WL,\
                 acc_train_L,acc_test_L,acc_train_WL,acc_test_WL])
