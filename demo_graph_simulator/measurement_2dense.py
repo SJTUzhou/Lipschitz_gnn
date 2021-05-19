@@ -185,7 +185,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
    
-    epochs = 100
+    epochs = 1
     model.fit(x_train, y_train, epochs=epochs, batch_size=40, validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback], verbose=2)
     model.save(model_name)
     return model
@@ -220,8 +220,28 @@ def generate_mean_values(num_class):
     return [np.random.uniform(low=-2,high=2,size=3) for _ in range(num_class)]
 
 def add_noise(data):
-    data += np.random.normal(loc=0.0, scale=0.5, size= data.shape)
-    return 0
+    noised_data = data + np.random.normal(loc=0.0, scale=0.5, size= data.shape)
+    return noised_data
+
+def model_Ad_pertubation(model,Ad):
+    L1,L2 = np.nonzero(Ad)
+    k = np.random.randint(low=0, high = L1.shape[0])
+    Wb1= model.layers[2].get_weights() 
+    Wb2 = model.layers[3].get_weights()
+    W1=Wb1[0]
+    W2=Wb2[0]
+    W1_block_height = W1.shape[0]//Ad.shape[0]
+    W1_block_width = W1.shape[1]//Ad.shape[1]
+    W2_block_height = W2.shape[0]//Ad.shape[0]
+    W2_block_width = W2.shape[1]//Ad.shape[1]   
+    Wb1[0][W1_block_height*L1[k]:W1_block_height*(L1[k]+1),W1_block_width*L2[k]:W1_block_width*(L2[k]+1)] = 0
+    Wb1[0][W1_block_height*L2[k]:W1_block_height*(L2[k]+1),W1_block_width*L1[k]:W1_block_width*(L1[k]+1)] = 0
+    Wb2[0][W2_block_height*L1[k]:W2_block_height*(L1[k]+1),W2_block_width*L2[k]:W2_block_width*(L2[k]+1)] = 0
+    Wb2[0][W2_block_height*L2[k]:W2_block_height*(L2[k]+1),W2_block_width*L1[k]:W2_block_width*(L1[k]+1)] = 0
+    model.layers[2].set_weights(Wb1)
+    model.layers[3].set_weights(Wb2)
+    return model
+
 
 
 if __name__ == "__main__":
@@ -236,7 +256,9 @@ if __name__ == "__main__":
                 "train loss with L","test loss with L","train loss without L","test loss without L",\
                 "train acc with L","test acc with L","train acc without L","test acc without L",\
                 "noised train loss with L","noised test loss with L","noised train loss without L","noised test loss without L",\
-                "noised train acc with L","noised test acc with L","noised train acc without L","noised test acc without L"])
+                "noised train acc with L","noised test acc with L","noised train acc without L","noised test acc without L",\
+                "disturbed train loss with L","disturbed test loss with L","disturbed train loss without L","disturbed test loss without L",\
+                "disturbed train acc with L","disturbed test acc with L","disturbed train acc without L","disturbed test acc without L"])
     NUM_TEST = 50
     for i in range(start_i, NUM_TEST):
         num_class = 5
@@ -277,43 +299,73 @@ if __name__ == "__main__":
         loss_test_WL, acc_test_WL = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
         print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_WL,acc_test_WL))
 
-        # add noise 
-        x_train = add_noise(x_train)
-        x_test = add_noise(x_test)
-        print("Evaluation of model WITH Lipschitz constant constraint on NOISED TRAIN data")
-        N_loss_train_L, N_acc_train_L = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
-        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_L,acc_train_L))
 
-        print("Evaluation of model WITH Lipschitz constant constraint on NOISED TEST data")
-        N_loss_test_L, N_acc_test_L = model_with_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
-        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_L,acc_test_L))
-
-
-        print("Evaluation of model WITHOUT Lipschitz constant constraint on NOISED TRAIN data")
-        N_loss_train_WL, N_acc_train_WL = model_without_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
-        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_WL,acc_train_WL))
-        
-        print("Evaluation of model WITHOUT Lipschitz constant constraint on NOISED TEST data")
-        N_loss_test_WL, N_acc_test_WL = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
-        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_WL,acc_test_WL))
-
-
-
-
-        # execute the following line in termianl to view the tensorboard
+        print("_"*50)
+                # execute the following line in termianl to view the tensorboard
         # tensorboard --logdir logs/fit
 
         model = tf.keras.models.load_model("saved_model/model_with_Lip_constr.h5")
-        print("W2 shape:", model.layers[2].get_weights()[0].shape)
-        print("W3 shape:", model.layers[3].get_weights()[0].shape)
+        # print("W2 shape:", model.layers[2].get_weights()[0].shape)
+        # print("W3 shape:", model.layers[3].get_weights()[0].shape)
         theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
         print("theta_bar with Lip:",theta_bar)
 
         model = tf.keras.models.load_model("saved_model/model_without_Lip_constr.h5")
-        print("W2 shape:", model.layers[2].get_weights()[0].shape)
-        print("W3 shape:", model.layers[3].get_weights()[0].shape)
+        # print("W2 shape:", model.layers[2].get_weights()[0].shape)
+        # print("W3 shape:", model.layers[3].get_weights()[0].shape)
         theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
         print("theta_bar without Lip:",theta_bar)
+
+        print("_"*50)
+
+        # add noise 
+        print("start the test of noised data")
+        x_train_N = add_noise(x_train)
+        x_test_N = add_noise(x_test)
+
+        print("Evaluation of model WITH Lipschitz constant constraint on NOISED TRAIN data")
+        N_loss_train_L, N_acc_train_L = model_with_Lip_constr.evaluate(x_train_N, y_train, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_L,acc_train_L))
+
+        print("Evaluation of model WITH Lipschitz constant constraint on NOISED TEST data")
+        N_loss_test_L, N_acc_test_L = model_with_Lip_constr.evaluate(x_test_N, y_test, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_L,acc_test_L))
+
+
+        print("Evaluation of model WITHOUT Lipschitz constant constraint on NOISED TRAIN data")
+        N_loss_train_WL, N_acc_train_WL = model_without_Lip_constr.evaluate(x_train_N, y_train, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_WL,acc_train_WL))
+        
+        print("Evaluation of model WITHOUT Lipschitz constant constraint on NOISED TEST data")
+        N_loss_test_WL, N_acc_test_WL = model_without_Lip_constr.evaluate(x_test_N, y_test, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_WL,acc_test_WL))
+        print("_"*50)
+
+
+        # Ad perturbation
+        print("start the test of Adjascency pertubation")
+        model_with_Lip_constr =  model_Ad_pertubation(model_with_Lip_constr,Ad)
+        model_without_Lip_constr =  model_Ad_pertubation(model_without_Lip_constr,Ad)
+
+        print("Evaluation of model WITH Lipschitz constant constraint on TRAIN data")
+        P_loss_train_L, P_acc_train_L = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_L,acc_train_L))
+
+        print("Evaluation of model WITH Lipschitz constant constraint on NOISED TEST data")
+        P_loss_test_L, P_acc_test_L = model_with_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_L,acc_test_L))
+
+
+        print("Evaluation of model WITHOUT Lipschitz constant constraint on NOISED TRAIN data")
+        P_loss_train_WL, P_acc_train_WL = model_without_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_WL,acc_train_WL))
+        
+        print("Evaluation of model WITHOUT Lipschitz constant constraint on NOISED TEST data")
+        P_loss_test_WL, P_acc_test_WL = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_WL,acc_test_WL))
+        print("_"*50)
+
+
 
         with open("result.csv","a",newline='') as csvfile:
             writer = csv.writer(csvfile)
@@ -321,4 +373,6 @@ if __name__ == "__main__":
                 loss_train_L,loss_test_L,loss_train_WL,loss_test_WL,\
                 acc_train_L,acc_test_L,acc_train_WL,acc_test_WL,\
                 N_loss_train_L,N_loss_test_L,N_loss_train_WL,N_loss_test_WL,\
-                N_acc_train_L,N_acc_test_L,N_acc_train_WL,N_acc_test_WL,])
+                N_acc_train_L,N_acc_test_L,N_acc_train_WL,N_acc_test_WL,\
+                P_loss_train_L,P_loss_test_L,P_loss_train_WL,P_loss_test_WL,\
+                P_acc_train_L,P_acc_test_L,P_acc_train_WL,P_acc_test_WL,])
