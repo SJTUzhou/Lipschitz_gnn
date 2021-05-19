@@ -1,3 +1,4 @@
+from numpy.core.numeric import zeros_like
 from Norm_Constraint_Fista import Norm_Constraint
 import simulator_ZHX
 import simulator_once
@@ -218,6 +219,10 @@ def compute_ovelapping_ratio(means, std):
 def generate_mean_values(num_class):
     return [np.random.uniform(low=-2,high=2,size=3) for _ in range(num_class)]
 
+def add_noise(data):
+    data += np.random.normal(loc=0.0, scale=0.5, size= data.shape)
+    return 0
+
 
 if __name__ == "__main__":
     start_i = 0
@@ -229,7 +234,9 @@ if __name__ == "__main__":
             writer = csv.writer(csvfile)
             writer.writerow(["std","means","overlap ratio",\
                 "train loss with L","test loss with L","train loss without L","test loss without L",\
-                "train acc with L","test acc with L","train acc without L","test acc without L"])
+                "train acc with L","test acc with L","train acc without L","test acc without L",\
+                "noised train loss with L","noised test loss with L","noised train loss without L","noised test loss without L",\
+                "noised train acc with L","noised test acc with L","noised train acc without L","noised test acc without L"])
     NUM_TEST = 50
     for i in range(start_i, NUM_TEST):
         num_class = 5
@@ -270,6 +277,29 @@ if __name__ == "__main__":
         loss_test_WL, acc_test_WL = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
         print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_WL,acc_test_WL))
 
+        # add noise 
+        x_train = add_noise(x_train)
+        x_test = add_noise(x_test)
+        print("Evaluation of model WITH Lipschitz constant constraint on NOISED TRAIN data")
+        N_loss_train_L, N_acc_train_L = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_L,acc_train_L))
+
+        print("Evaluation of model WITH Lipschitz constant constraint on NOISED TEST data")
+        N_loss_test_L, N_acc_test_L = model_with_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_L,acc_test_L))
+
+
+        print("Evaluation of model WITHOUT Lipschitz constant constraint on NOISED TRAIN data")
+        N_loss_train_WL, N_acc_train_WL = model_without_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_train_WL,acc_train_WL))
+        
+        print("Evaluation of model WITHOUT Lipschitz constant constraint on NOISED TEST data")
+        N_loss_test_WL, N_acc_test_WL = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=20, verbose=0)
+        print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_WL,acc_test_WL))
+
+
+
+
         # execute the following line in termianl to view the tensorboard
         # tensorboard --logdir logs/fit
 
@@ -289,4 +319,6 @@ if __name__ == "__main__":
             writer = csv.writer(csvfile)
             writer.writerow([std,means,overlap_ratio,\
                 loss_train_L,loss_test_L,loss_train_WL,loss_test_WL,\
-                acc_train_L,acc_test_L,acc_train_WL,acc_test_WL])
+                acc_train_L,acc_test_L,acc_train_WL,acc_test_WL,\
+                N_loss_train_L,N_loss_test_L,N_loss_train_WL,N_loss_test_WL,\
+                N_acc_train_L,N_acc_test_L,N_acc_train_WL,N_acc_test_WL,])
