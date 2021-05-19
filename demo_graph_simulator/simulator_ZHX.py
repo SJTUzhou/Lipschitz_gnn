@@ -137,7 +137,7 @@ def generate_dataset(A,mu0,mu1,cov,size):
     Attributes = []
     Labels = []
 
-    for i in range(size):
+    for __ in range(size):
         attributes,labels, _,_ = generator(A,mu0,mu1,cov)
         Attributes.append(attributes)
         Labels.append(labels)
