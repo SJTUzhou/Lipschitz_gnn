@@ -179,14 +179,15 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
         log_dir = "logs/fit{}/".format(log_id) + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         model_name = "saved_model/model_without_Lip_constr.h5"
 
+    es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=2)
     norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, layers=[2,3], withConstraint=withLipConstraint, applyFista=True)
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
    
-    epochs = 1
-    model.fit(x_train, y_train, epochs=epochs, batch_size=40, validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback], verbose=2)
+    max_epochs = 1000
+    model.fit(x_train, y_train, epochs=max_epochs, batch_size=x_train.shape[0], validation_split=0.1, callbacks=[norm_constr_callback, tensorboard_callback, es], verbose=1)
     model.save(model_name)
     return model
 

@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 def plot_result_of_one_model():
     # Directory to the results
     RESULT_FILE = "./result.csv"
-    # RESULT_FILE = "./results/result_2dense_diff-cut.csv" # binary classification model with 2 dense layers, community location is different in each graph (sample)
-    # RESULT_FILE = "./results/result_3dense_diff-cut.csv" # binary classification model with 3 dense layers, community location is different in each graph (sample)
     df = pd.read_csv(RESULT_FILE, delimiter=",")
 
     array_ratio = 1./df["overlap ratio"].to_numpy()
