@@ -174,10 +174,10 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
     model_name = ""
     if withLipConstraint:
         log_dir = "logs/fit{}/".format(log_id) + "model-with-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        model_name = "saved_model/model_with_Lip_constr.h5"
+        model_name = "saved_model/" + "fit{}_model_with_Lip_constr.h5".format(log_id) 
     else:
         log_dir = "logs/fit{}/".format(log_id) + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        model_name = "saved_model/model_without_Lip_constr.h5"
+        model_name = "saved_model/" + "fit{}_model_without_Lip_constr.h5".format(log_id) 
 
     es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=2)
     norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, layers=[2,3], withConstraint=withLipConstraint, applyFista=True)
@@ -305,13 +305,13 @@ if __name__ == "__main__":
                 # execute the following line in termianl to view the tensorboard
         # tensorboard --logdir logs/fit
 
-        model = tf.keras.models.load_model("saved_model/model_with_Lip_constr.h5")
+        model = tf.keras.models.load_model("saved_model/fit{}_model_with_Lip_constr.h5".format(i))
         # print("W2 shape:", model.layers[2].get_weights()[0].shape)
         # print("W3 shape:", model.layers[3].get_weights()[0].shape)
         theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
         print("theta_bar with Lip:",theta_bar)
 
-        model = tf.keras.models.load_model("saved_model/model_without_Lip_constr.h5")
+        model = tf.keras.models.load_model("saved_model/fit{}_model_without_Lip_constr.h5".format(i))
         # print("W2 shape:", model.layers[2].get_weights()[0].shape)
         # print("W3 shape:", model.layers[3].get_weights()[0].shape)
         theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 

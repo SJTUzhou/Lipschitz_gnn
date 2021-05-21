@@ -50,8 +50,8 @@ def plot_result_of_one_model():
 
 def plot_result_comparison():
     # Directory to the results
-    RESULT_FILE2 = "./results/result_2dense_diff-cut.csv"
-    RESULT_FILE3 = "./results/result_3dense_diff-cut.csv"
+    RESULT_FILE2 = ""
+    RESULT_FILE3 = ""
     df2 = pd.read_csv(RESULT_FILE2, delimiter=",")
     df3 = pd.read_csv(RESULT_FILE3, delimiter=",")
 
@@ -95,6 +95,43 @@ def plot_result_comparison():
     plt.show()
 
 
+def plot_robust_test_results(process_type="train", result_type="loss", test_type="noised"):
+    """
+    process_type: string, "train" or "test"
+    result_type: string, "loss" or "acc"
+    test_type: string, "noised" or "disturbed"
+    """
+    RESULT_FILE = "./result.csv"
+    df = pd.read_csv(RESULT_FILE, delimiter=",")
+
+    array_ratio = 1./df["overlap ratio"].to_numpy()
+
+    array_original_with_Lip = df["{} {} with L".format(process_type,result_type)].to_numpy()
+    array_original_without_Lip = df["{} {} without L".format(process_type,result_type)].to_numpy()
+    array_robust_test_with_Lip = df["{} {} {} with L".format(test_type,process_type,result_type)].to_numpy()
+    array_robust_test_without_Lip = df["{} {} {} without L".format(test_type,process_type,result_type)].to_numpy()
+    
+    ax = plt.subplot()
+    ax.scatter(array_ratio, array_original_with_Lip, label="original_{}_{}_with_Lipschitz_constraint".format(process_type,result_type))
+    ax.scatter(array_ratio, array_original_without_Lip, label="original_{}_{}_without_Lipschitz_constraint".format(process_type,result_type))
+    ax.scatter(array_ratio, array_robust_test_with_Lip, label="{}_{}_{}_with_Lipschitz_constraint".format(test_type,process_type,result_type))
+    ax.scatter(array_ratio, array_robust_test_without_Lip, label="{}_{}_{}_without_Lipschitz_constraint".format(test_type,process_type,result_type))
+
+    ax.legend()
+    ax.grid(True)
+    ax.set_xlabel("SUM{ ||Mu_i-Mu_j|| } / std_dev")
+    ax.set_ylabel(result_type)
+    ax.set_xlim(left=0)
+    ax.set_ylim(bottom=0)
+
+    plt.show()
+
+
+
 if __name__ == "__main__":
-    plot_result_of_one_model()
+    # plot_result_of_one_model()
     # plot_result_comparison()
+    # plot_robust_test_results(process_type="train", result_type="loss", test_type="noised")
+    # plot_robust_test_results(process_type="test", result_type="loss", test_type="noised")
+    # plot_robust_test_results(process_type="train", result_type="acc", test_type="noised")
+    plot_robust_test_results(process_type="test", result_type="acc", test_type="noised")

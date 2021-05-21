@@ -146,9 +146,9 @@ def generate_dataset(A,mu0,mu1,cov,size):
 
 
 if __name__ == "__main__":
-    A = generate_random_Ad()
+    A = generate_random_Ad(random_seed=123)
     mu0 = [0.1, 0.8, -0.1] # red
-    mu1 = [0.4, 1.5, -0.5] # blue
+    mu1 = [0.7, 1.5, -0.6] # blue
     cov = [[1,0,0],[0,1,0],[0,0,1]] # red and blue
 
     attributes, labels, class_0, class_1 = generator(A,mu0,mu1,cov)

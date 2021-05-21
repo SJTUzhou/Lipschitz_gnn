@@ -18,7 +18,7 @@ class Norm_Constraint(Callback):
         self.layers = layers
         # number of iteration to update weight matrix in one step
         self.nit = 10
-        self.rho = 5.0 # theta_bar
+        self.rho = 1.0 # theta_bar
         self.criterion = 100
         self.cnst = 0.01
 
