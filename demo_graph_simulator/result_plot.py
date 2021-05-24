@@ -2,10 +2,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_result_of_one_model():
+def plot_result_of_one_model(result_file):
     # Directory to the results
-    RESULT_FILE = "./result.csv"
-    df = pd.read_csv(RESULT_FILE, delimiter=",")
+    df = pd.read_csv(result_file, delimiter=",")
 
     array_ratio = 1./df["overlap ratio"].to_numpy()
 
@@ -48,12 +47,10 @@ def plot_result_of_one_model():
 
 
 
-def plot_result_comparison():
+def plot_complex_models_comparison(result_file_1, result_file_2):
     # Directory to the results
-    RESULT_FILE2 = ""
-    RESULT_FILE3 = ""
-    df2 = pd.read_csv(RESULT_FILE2, delimiter=",")
-    df3 = pd.read_csv(RESULT_FILE3, delimiter=",")
+    df2 = pd.read_csv(result_file_1, delimiter=",")
+    df3 = pd.read_csv(result_file_2, delimiter=",")
 
     array_ratio2 = 1./df2["overlap ratio"].to_numpy()
     array_ratio3 = 1./df3["overlap ratio"].to_numpy()
@@ -95,14 +92,13 @@ def plot_result_comparison():
     plt.show()
 
 
-def plot_robust_test_results(process_type="train", result_type="loss", test_type="noised"):
+def plot_robust_test_results(result_file, process_type="train", result_type="loss", test_type="noised"):
     """
     process_type: string, "train" or "test"
     result_type: string, "loss" or "acc"
     test_type: string, "noised" or "disturbed"
     """
-    RESULT_FILE = "./result.csv"
-    df = pd.read_csv(RESULT_FILE, delimiter=",")
+    df = pd.read_csv(result_file, delimiter=",")
 
     array_ratio = 1./df["overlap ratio"].to_numpy()
 
@@ -129,9 +125,16 @@ def plot_robust_test_results(process_type="train", result_type="loss", test_type
 
 
 if __name__ == "__main__":
-    # plot_result_of_one_model()
-    # plot_result_comparison()
-    # plot_robust_test_results(process_type="train", result_type="loss", test_type="noised")
-    # plot_robust_test_results(process_type="test", result_type="loss", test_type="noised")
-    # plot_robust_test_results(process_type="train", result_type="acc", test_type="noised")
-    plot_robust_test_results(process_type="test", result_type="acc", test_type="noised")
+    RESULT_FILE = "./result.csv"
+    plot_result_of_one_model(RESULT_FILE)
+
+
+    # RESULT_FILE = "./result.csv"
+    # plot_robust_test_results(RESULT_FILE, process_type="train", result_type="loss", test_type="noised")
+    # plot_robust_test_results(RESULT_FILE, process_type="test", result_type="loss", test_type="noised")
+    # plot_robust_test_results(RESULT_FILE, process_type="train", result_type="acc", test_type="noised")
+    # plot_robust_test_results(RESULT_FILE, process_type="test", result_type="acc", test_type="noised")
+    # plot_robust_test_results(RESULT_FILE, process_type="train", result_type="loss", test_type="disturbed")
+    # plot_robust_test_results(RESULT_FILE, process_type="test", result_type="loss", test_type="disturbed")
+    # plot_robust_test_results(RESULT_FILE, process_type="train", result_type="acc", test_type="disturbed")
+    # plot_robust_test_results(RESULT_FILE, process_type="test", result_type="acc", test_type="disturbed")
