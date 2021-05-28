@@ -125,16 +125,16 @@ def plot_robust_test_results(result_file, process_type="train", result_type="los
 
 
 if __name__ == "__main__":
-    RESULT_FILE = "./result.csv"
-    plot_result_of_one_model(RESULT_FILE)
-
-
     # RESULT_FILE = "./result.csv"
-    # plot_robust_test_results(RESULT_FILE, process_type="train", result_type="loss", test_type="noised")
-    # plot_robust_test_results(RESULT_FILE, process_type="test", result_type="loss", test_type="noised")
-    # plot_robust_test_results(RESULT_FILE, process_type="train", result_type="acc", test_type="noised")
-    # plot_robust_test_results(RESULT_FILE, process_type="test", result_type="acc", test_type="noised")
-    # plot_robust_test_results(RESULT_FILE, process_type="train", result_type="loss", test_type="disturbed")
-    # plot_robust_test_results(RESULT_FILE, process_type="test", result_type="loss", test_type="disturbed")
-    # plot_robust_test_results(RESULT_FILE, process_type="train", result_type="acc", test_type="disturbed")
-    # plot_robust_test_results(RESULT_FILE, process_type="test", result_type="acc", test_type="disturbed")
+    # plot_result_of_one_model(RESULT_FILE)
+
+
+    RESULT_FILE = "./result.csv"
+    plot_robust_test_results(RESULT_FILE, process_type="train", result_type="loss", test_type="noised")
+    plot_robust_test_results(RESULT_FILE, process_type="test", result_type="loss", test_type="noised")
+    plot_robust_test_results(RESULT_FILE, process_type="train", result_type="acc", test_type="noised")
+    plot_robust_test_results(RESULT_FILE, process_type="test", result_type="acc", test_type="noised")
+    plot_robust_test_results(RESULT_FILE, process_type="train", result_type="loss", test_type="disturbed")
+    plot_robust_test_results(RESULT_FILE, process_type="test", result_type="loss", test_type="disturbed")
+    plot_robust_test_results(RESULT_FILE, process_type="train", result_type="acc", test_type="disturbed")
+    plot_robust_test_results(RESULT_FILE, process_type="test", result_type="acc", test_type="disturbed")
