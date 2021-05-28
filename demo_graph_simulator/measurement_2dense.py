@@ -32,7 +32,8 @@ def generate_complex_data(means, cov, num_graph=1000, random_seed=None):
     for i in range(num_graph):
         onehot_encoded_labels[i,:,:] = onehot_encoder.fit_transform(Labels[i,:,:])
     print("node attribute shape: ", Attributes.shape)
-    print("node label shape: ", Labels.shape)
+    print("node label shape: ", onehot_encoded_labels.shape)
+    np.save("data/Ad.npy", Ad)
     return Attributes, onehot_encoded_labels, Ad
 
 
@@ -56,6 +57,7 @@ def generate_data(mu0, mu1, cov, num_graph=1000, show_graph=True, random_seed=No
     Labels = np.concatenate((Labels, 1-Labels), axis=2)
     print("node attribute shape: ", Attributes.shape)
     print("node label shape: ", Labels.shape)
+    np.save("data/Ad.npy", Ad)
     return Attributes, Labels, Ad
 
 
@@ -81,6 +83,7 @@ def generate_data_same_cut(mu0, mu1, cov, num_graph=1000, show_graph=True, rando
     Labels = np.concatenate((Labels, 1-Labels), axis=2)
     print("node attribute shape: ", Attributes.shape)
     print("node label shape: ", Labels.shape)
+    np.save("data/Ad.npy", Ad)
     return Attributes, Labels, Ad
 
 
@@ -174,10 +177,10 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
     model_name = ""
     if withLipConstraint:
         log_dir = "logs/fit{}/".format(log_id) + "model-with-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        model_name = "saved_model/" + "model_with_Lip_constr.h5"
+        model_name = "saved_model/" + "fit{}_model_with_Lip_constr.h5".format(log_id)
     else:
         log_dir = "logs/fit{}/".format(log_id) + "model-without-Lip-constr-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        model_name = "saved_model/" + "model_without_Lip_constr.h5"
+        model_name = "saved_model/" + "fit{}_model_without_Lip_constr.h5".format(log_id)
 
     es = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=2)
     norm_constr_callback = Norm_Constraint(model, Ad=Ad, K=numNode, N=N, layers=[2,3], withConstraint=withLipConstraint, applyFista=True)
@@ -226,7 +229,8 @@ def add_noise(data):
 
 def model_Ad_pertubation(model,Ad):
     L1,L2 = np.nonzero(Ad)
-    k = np.random.randint(low=0, high = L1.shape[0])
+    # Delete 20% edges in the adjacency matrix
+    k_list = np.random.randint(low=0, high=L1.shape[0], size=(int(0.1*L1.shape[0]),))
     Wb1= model.layers[2].get_weights() 
     Wb2 = model.layers[3].get_weights()
     W1=Wb1[0]
@@ -234,11 +238,12 @@ def model_Ad_pertubation(model,Ad):
     W1_block_height = W1.shape[0]//Ad.shape[0]
     W1_block_width = W1.shape[1]//Ad.shape[1]
     W2_block_height = W2.shape[0]//Ad.shape[0]
-    W2_block_width = W2.shape[1]//Ad.shape[1]   
-    Wb1[0][W1_block_height*L1[k]:W1_block_height*(L1[k]+1),W1_block_width*L2[k]:W1_block_width*(L2[k]+1)] = 0
-    Wb1[0][W1_block_height*L2[k]:W1_block_height*(L2[k]+1),W1_block_width*L1[k]:W1_block_width*(L1[k]+1)] = 0
-    Wb2[0][W2_block_height*L1[k]:W2_block_height*(L1[k]+1),W2_block_width*L2[k]:W2_block_width*(L2[k]+1)] = 0
-    Wb2[0][W2_block_height*L2[k]:W2_block_height*(L2[k]+1),W2_block_width*L1[k]:W2_block_width*(L1[k]+1)] = 0
+    W2_block_width = W2.shape[1]//Ad.shape[1]  
+    for k in k_list: 
+        Wb1[0][W1_block_height*L1[k]:W1_block_height*(L1[k]+1),W1_block_width*L2[k]:W1_block_width*(L2[k]+1)] = 0
+        Wb1[0][W1_block_height*L2[k]:W1_block_height*(L2[k]+1),W1_block_width*L1[k]:W1_block_width*(L1[k]+1)] = 0
+        Wb2[0][W2_block_height*L1[k]:W2_block_height*(L1[k]+1),W2_block_width*L2[k]:W2_block_width*(L2[k]+1)] = 0
+        Wb2[0][W2_block_height*L2[k]:W2_block_height*(L2[k]+1),W2_block_width*L1[k]:W2_block_width*(L1[k]+1)] = 0
     model.layers[2].set_weights(Wb1)
     model.layers[3].set_weights(Wb2)
     return model
@@ -261,7 +266,7 @@ if __name__ == "__main__":
                 "disturbed train loss with L","disturbed test loss with L","disturbed train loss without L","disturbed test loss without L",\
                 "disturbed train acc with L","disturbed test acc with L","disturbed train acc without L","disturbed test acc without L"])
     NUM_TEST = 50
-    for i in range(start_i, NUM_TEST):
+    for log_id in range(start_i, NUM_TEST):
         num_class = 5
         means = generate_mean_values(num_class)
         std = np.random.uniform(0.5,2.5)
@@ -281,12 +286,12 @@ if __name__ == "__main__":
         x_train, x_test, y_train, y_test = train_test_data_split(node_features, labels, train_ratio=0.8)
 
         # proposed model
-        model_with_Lip_constr = train(x_train, y_train, Ad=Ad, withLipConstraint=True, log_id=i)
-        model_without_Lip_constr = train(x_train, y_train, Ad=Ad, withLipConstraint=False, log_id=i)
+        model_with_Lip_constr = train(x_train, y_train, Ad=Ad, withLipConstraint=True, log_id=log_id)
+        model_without_Lip_constr = train(x_train, y_train, Ad=Ad, withLipConstraint=False, log_id=log_id)
 
         # baseline model where Ad = indentity matrix
-        # model_with_Lip_constr = train(x_train, y_train, Ad=np.eye(Ad.shape[0]), withLipConstraint=True, log_id=i)
-        # model_without_Lip_constr = train(x_train, y_train, Ad=np.eye(Ad.shape[0]), withLipConstraint=False, log_id=i)
+        # model_with_Lip_constr = train(x_train, y_train, Ad=np.eye(Ad.shape[0]), withLipConstraint=True, log_id=log_id)
+        # model_without_Lip_constr = train(x_train, y_train, Ad=np.eye(Ad.shape[0]), withLipConstraint=False, log_id=log_id)
 
         print("Evaluation of model WITH Lipschitz constant constraint on TRAIN data")
         loss_train_L, acc_train_L = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=x_train.shape[0], verbose=0)
@@ -311,13 +316,13 @@ if __name__ == "__main__":
         # execute the following line in termianl to view the tensorboard
         # tensorboard --logdir logs/fit
 
-        model = tf.keras.models.load_model("saved_model/model_with_Lip_constr.h5")
+        model = tf.keras.models.load_model("saved_model/fit{}_model_with_Lip_constr.h5".format(log_id))
         # print("W2 shape:", model.layers[2].get_weights()[0].shape)
         # print("W3 shape:", model.layers[3].get_weights()[0].shape)
         theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
         print("theta_bar with Lip:",theta_bar)
 
-        model = tf.keras.models.load_model("saved_model/model_without_Lip_constr.h5")
+        model = tf.keras.models.load_model("saved_model/fit{}_model_without_Lip_constr.h5".format(log_id))
         # print("W2 shape:", model.layers[2].get_weights()[0].shape)
         # print("W3 shape:", model.layers[3].get_weights()[0].shape)
         theta_bar = np.linalg.norm(model.layers[2].get_weights()[0] @ model.layers[3].get_weights()[0], ord=2) 
