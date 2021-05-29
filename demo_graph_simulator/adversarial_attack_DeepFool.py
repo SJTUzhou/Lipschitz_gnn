@@ -54,7 +54,7 @@ def main():
     # with open("result_DeepFool.csv","w",newline='') as csvfile:
     #     writer = csv.writer(csvfile)
     #     writer.writerow(["overlap ratio","acc_test_L","acc_test_WL","acc_adv_with_Lip","acc_adv_without_Lip"])
-    for i in range(7,NUM_TEST):
+    for i in range(8,NUM_TEST):
         x_test, y_test = reconstruct_test_data(array_std[i], array_mean_values[i], Ad, NUM_GRAPH)
         model_with_Lip_constr = tf.keras.models.load_model("saved_model_adver_attack/fit{}_model_with_Lip_constr.h5".format(i))
         print(model_with_Lip_constr.summary())

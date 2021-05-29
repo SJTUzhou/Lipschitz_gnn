@@ -289,9 +289,9 @@ if __name__ == "__main__":
         model_with_Lip_constr = train(x_train, y_train, Ad=Ad, withLipConstraint=True, log_id=log_id)
         model_without_Lip_constr = train(x_train, y_train, Ad=Ad, withLipConstraint=False, log_id=log_id)
 
-        # baseline model where Ad = indentity matrix
-        # model_with_Lip_constr = train(x_train, y_train, Ad=np.eye(Ad.shape[0]), withLipConstraint=True, log_id=log_id)
-        # model_without_Lip_constr = train(x_train, y_train, Ad=np.eye(Ad.shape[0]), withLipConstraint=False, log_id=log_id)
+        # baseline model where Ad = indentity matrix /all-ones matrix
+        # model_with_Lip_constr = train(x_train, y_train, Ad=np.ones(Ad.shape), withLipConstraint=True, log_id=log_id) # np.eye(Ad.shape[0]) # np.ones(Ad.shape)
+        # model_without_Lip_constr = train(x_train, y_train, Ad=np.ones(Ad.shape), withLipConstraint=False, log_id=log_id) # np.eye(Ad.shape[0]) # np.ones(Ad.shape)
 
         print("Evaluation of model WITH Lipschitz constant constraint on TRAIN data")
         loss_train_L, acc_train_L = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=x_train.shape[0], verbose=0)
@@ -359,9 +359,9 @@ if __name__ == "__main__":
         model_with_Lip_constr =  model_Ad_pertubation(model_with_Lip_constr,Ad=Ad)
         model_without_Lip_constr =  model_Ad_pertubation(model_without_Lip_constr,Ad=Ad)
 
-        # Ad = Id for baseline model
-        # model_with_Lip_constr =  model_Ad_pertubation(model_with_Lip_constr,Ad=np.eye(Ad.shape[0]))
-        # model_without_Lip_constr =  model_Ad_pertubation(model_without_Lip_constr,Ad=np.eye(Ad.shape[0]))
+        # Ad = Id/ones for baseline model
+        # model_with_Lip_constr =  model_Ad_pertubation(model_with_Lip_constr,Ad=np.ones(Ad.shape)) # np.eye(Ad.shape[0]) # np.ones(Ad.shape)
+        # model_without_Lip_constr =  model_Ad_pertubation(model_without_Lip_constr,Ad=np.ones(Ad.shape)) # np.eye(Ad.shape[0]) # np.ones(Ad.shape)
 
         print("Evaluation of model WITH Lipschitz constant constraint on PERTURBED TRAIN data")
         P_loss_train_L, P_acc_train_L = model_with_Lip_constr.evaluate(x_train, y_train, batch_size=20, verbose=0)
