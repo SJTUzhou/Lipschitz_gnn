@@ -44,7 +44,7 @@ def reconstruct_test_data(std, mean_values, Ad, num_graph):
 
 
 def main():
-    RAW_RESULT_FILE = "./result.csv"
+    RAW_RESULT_FILE = "./result_adver_attack.csv"
     Ad = np.load("./data/Ad.npy")
     NUM_TEST = 50
     NUM_GRAPH = 200
@@ -56,9 +56,9 @@ def main():
     #     writer.writerow(["overlap ratio","acc_test_L","acc_test_WL","acc_adv_with_Lip","acc_adv_without_Lip"])
     for i in range(7,NUM_TEST):
         x_test, y_test = reconstruct_test_data(array_std[i], array_mean_values[i], Ad, NUM_GRAPH)
-        model_with_Lip_constr = tf.keras.models.load_model("saved_model/fit{}_model_with_Lip_constr.h5".format(i))
+        model_with_Lip_constr = tf.keras.models.load_model("saved_model_adver_attack/fit{}_model_with_Lip_constr.h5".format(i))
         print(model_with_Lip_constr.summary())
-        model_without_Lip_constr = tf.keras.models.load_model("saved_model/fit{}_model_without_Lip_constr.h5".format(i))
+        model_without_Lip_constr = tf.keras.models.load_model("saved_model_adver_attack/fit{}_model_without_Lip_constr.h5".format(i))
         
         # y_predict = model_with_Lip_constr.predict(x_test)
         # print(y_predict)
