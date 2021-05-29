@@ -51,10 +51,10 @@ def main():
     array_std, array_mean_values, array_overlap_ratio = load_raw_result_csv(RAW_RESULT_FILE)
     NUM_CLASS = array_mean_values.shape[1]
     print(array_mean_values.shape)
-    with open("result_DeepFool.csv","w",newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["overlap ratio","acc_test_L","acc_test_WL","acc_adv_with_Lip","acc_adv_without_Lip"])
-    for i in range(NUM_TEST):
+    # with open("result_DeepFool.csv","w",newline='') as csvfile:
+    #     writer = csv.writer(csvfile)
+    #     writer.writerow(["overlap ratio","acc_test_L","acc_test_WL","acc_adv_with_Lip","acc_adv_without_Lip"])
+    for i in range(7,NUM_TEST):
         x_test, y_test = reconstruct_test_data(array_std[i], array_mean_values[i], Ad, NUM_GRAPH)
         model_with_Lip_constr = tf.keras.models.load_model("saved_model/fit{}_model_with_Lip_constr.h5".format(i))
         print(model_with_Lip_constr.summary())
@@ -85,8 +85,8 @@ def main():
         attack1 = DeepFool(classifier=classifier_with_Lip, epsilon=0.2,  batch_size=10)
         attack2 = DeepFool(classifier=classifier_without_Lip, epsilon=0.2,  batch_size=10)
 
-        x_test_adv1 = attack1.generate(x=x_test, mask =np.ones((1,x_test.shape[1],x_test.shape[2])))
-        x_test_adv2 = attack2.generate(x=x_test, mask =np.ones((1,x_test.shape[1],x_test.shape[2])))
+        x_test_adv1 = attack1.generate(x=x_test)
+        x_test_adv2 = attack2.generate(x=x_test)
         y_predict_adv_with_Lip = classifier_with_Lip.predict(x_test_adv1)
         y_predict_adv_without_Lip = classifier_without_Lip.predict(x_test_adv2)
 
