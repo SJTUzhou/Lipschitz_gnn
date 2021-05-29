@@ -9,8 +9,11 @@ import ast
 import re
 from sklearn.preprocessing import OneHotEncoder
 from art.attacks.evasion import DeepFool
+from art.attacks.evasion import CarliniLInfMethod
+from art.attacks.evasion  import AutoProjectedGradientDescent
 from art.estimators.classification import KerasClassifier
 import complex_generator
+import csv
 
 
 
@@ -43,11 +46,14 @@ def reconstruct_test_data(std, mean_values, Ad, num_graph):
 def main():
     RAW_RESULT_FILE = "./result.csv"
     Ad = np.load("./data/Ad.npy")
-    NUM_TEST = 1
-    NUM_GRAPH = 100
+    NUM_TEST = 50
+    NUM_GRAPH = 200
     array_std, array_mean_values, array_overlap_ratio = load_raw_result_csv(RAW_RESULT_FILE)
     NUM_CLASS = array_mean_values.shape[1]
     print(array_mean_values.shape)
+    with open("result_DeepFool.csv","w",newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["overlap ratio","acc_test_L","acc_test_WL","acc_adv_with_Lip","acc_adv_without_Lip"])
     for i in range(NUM_TEST):
         x_test, y_test = reconstruct_test_data(array_std[i], array_mean_values[i], Ad, NUM_GRAPH)
         model_with_Lip_constr = tf.keras.models.load_model("saved_model/fit{}_model_with_Lip_constr.h5".format(i))
@@ -69,15 +75,18 @@ def main():
         new_model_with_Lip = Model(inputs=model_with_Lip_constr.input, outputs=reshape_with_Lip)
         reshape_without_Lip = Reshape((x_test.shape[1]*NUM_CLASS,),name="added_reshape_layer_WL")(model_without_Lip_constr.output)
         new_model_without_Lip = Model(inputs=model_without_Lip_constr.input, outputs=reshape_without_Lip)
-
+        new_model_with_Lip.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        new_model_without_Lip.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         min_value = np.min(array_mean_values[i]) - 100*array_std[i]
         max_value = np.max(array_mean_values[i]) + 100*array_std[i]
         classifier_with_Lip = KerasClassifier(model=new_model_with_Lip, clip_values=(min_value, max_value), use_logits=False)
         classifier_without_Lip = KerasClassifier(model=new_model_without_Lip, clip_values=(min_value, max_value), use_logits=False)
-        attack1 = DeepFool(classifier=classifier_with_Lip, epsilon=0.2, batch_size=10)
+
+        attack1 = DeepFool(classifier=classifier_with_Lip, epsilon=0.2,  batch_size=10)
         attack2 = DeepFool(classifier=classifier_without_Lip, epsilon=0.2,  batch_size=10)
-        x_test_adv1 = attack1.generate(x=x_test)
-        x_test_adv2 = attack2.generate(x=x_test)
+
+        x_test_adv1 = attack1.generate(x=x_test, mask =np.ones((1,x_test.shape[1],x_test.shape[2])))
+        x_test_adv2 = attack2.generate(x=x_test, mask =np.ones((1,x_test.shape[1],x_test.shape[2])))
         y_predict_adv_with_Lip = classifier_with_Lip.predict(x_test_adv1)
         y_predict_adv_without_Lip = classifier_without_Lip.predict(x_test_adv2)
 
@@ -89,5 +98,8 @@ def main():
         print("Accuracy on adversarial test examples without Lipschitz constraint: {:.2f}%".format(acc_adv_without_Lip * 100))
         
 
+        with open("result_DeepFool.csv","a",newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([array_overlap_ratio[i], acc_test_L,acc_test_WL,acc_adv_with_Lip,acc_adv_without_Lip])
 if __name__ == "__main__":
     main()
