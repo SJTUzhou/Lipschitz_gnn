@@ -1,4 +1,4 @@
-# Lipschitz_gnn
+# Lipschitz_gnn: Train robust GNN by imposing constraint on Lipschitz constant of the network
 
 Pôle de Projet ST7_SG8
 
