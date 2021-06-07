@@ -137,6 +137,7 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
     y_train: 3d-array,  one-hot encoding, shape=(Num_graph, Num_node_per_graph, 2), classfication of nodes (2 classes)
     Ad: Adjancency matrix, corresponding to the order of nodes in node_features == (Num_node_per_graph,Num_node_per_graph)
     withConstraint: bool, whether or not applying Lipschitz constant constraint
+    log_id: integer, record the index of training
     """
     numNode = node_features.shape[1]  
     numFeature = node_features.shape[2] 
@@ -198,6 +199,9 @@ def train(x_train, y_train, Ad, withLipConstraint=True, log_id=""):
 import csv
 import os, shutil
 def delete_cache():
+    """
+    Delete the log files generated in the previous training
+    """
     folder = './logs/'
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
@@ -221,9 +225,13 @@ def compute_ovelapping_ratio(means, std):
 
 
 def generate_mean_values(num_class):
+    """
+    generate the mean vectors for different classes
+    """
     return [np.random.uniform(low=-2,high=2,size=3) for _ in range(num_class)]
 
 def add_noise(data):
+    """Add a gaussian noise to the data"""
     noised_data = data + np.random.normal(loc=0.0, scale=0.5, size=data.shape)
     return noised_data
 
