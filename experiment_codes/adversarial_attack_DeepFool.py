@@ -45,6 +45,16 @@ def load_raw_result_csv(result_csvfile):
 
 
 def reconstruct_test_data(std, mean_values, Ad, num_graph):
+    """Reconstruct test dataset for each an experiment based on its standard deviation and mean vectors
+    Input:
+        std: float, standard deviation of an artificial dataset
+        mean_values: numpy array, mean vectors of different classes of an artifical dataset
+        Ad: numpy array, adjacency matrix
+        num_graph: int, the number of graph in test dataset
+    Output:
+        Attributes: numpy array, node features, shape=(graph_num, node_num_per_graph, feature_num_per_node)
+        onehot_encoded_labels: numpy array, shape=(graph_num, node_num_per_graph, class_num)
+    """
     num_class = mean_values.shape[0]
     variance = std**2
     cov = np.diag([variance,variance,variance])
@@ -62,24 +72,33 @@ def reconstruct_test_data(std, mean_values, Ad, num_graph):
 
 
 def main():
-    Ad = np.load(AD_MAT_FILE)
-    NUM_TEST = 50
-    NUM_GRAPH = 200
+    Ad = np.load(AD_MAT_FILE) # Load adjacency matrix
+    NUM_TEST = 50 # The number of experiments recorded in raw result file
+    NUM_GRAPH = 200 # The number of graph in a test dataset
     array_std, array_mean_values, array_overlap_ratio = load_raw_result_csv(RAW_RESULT_FILE)
     NUM_CLASS = array_mean_values.shape[1]
     print(array_mean_values.shape)
     with open("result_DeepFool.csv","w",newline='') as csvfile:
+        # Header for the csv file: 
+        # 1)overlap measurement 
+        # 2)accuracy of model with Lipschitz constant constraint on original test dataset
+        # 3)accuracy of model without Lipschitz constant constraint on original test dataset
+        # 4)accuracy of model with Lipschitz constant constraint on adversarial test dataset 
+        # 5)accuracy of model without Lipschitz constant constraint on adversarial test dataset
         writer = csv.writer(csvfile)
         writer.writerow(["overlap ratio","acc_test_L","acc_test_WL","acc_adv_with_Lip","acc_adv_without_Lip"])
+
+    # Begin adversarial test for each previous model
     for i in range(0,NUM_TEST):
         tf.keras.backend.clear_session()
+        # Reconstruct test dataset for each model
         x_test, y_test = reconstruct_test_data(array_std[i], array_mean_values[i], Ad, NUM_GRAPH)
+        # Load models with/without Lipschitz constant constraint
         model_with_Lip_constr = tf.keras.models.load_model("saved_model_adver_attack/fit{}_model_with_Lip_constr.h5".format(i))
         print(model_with_Lip_constr.summary())
         model_without_Lip_constr = tf.keras.models.load_model("saved_model_adver_attack/fit{}_model_without_Lip_constr.h5".format(i))
         
-        # y_predict = model_with_Lip_constr.predict(x_test)
-        # print(y_predict)
+        # Evaluation of models on original test dataset
         print("Evaluation of model WITH Lipschitz constant constraint on TEST data")
         loss_test_L, acc_test_L = model_with_Lip_constr.evaluate(x_test, y_test, batch_size=x_test.shape[0], verbose=0)
         print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_L, acc_test_L))
@@ -88,7 +107,7 @@ def main():
         loss_test_WL, acc_test_WL = model_without_Lip_constr.evaluate(x_test, y_test, batch_size=x_test.shape[0], verbose=0)
         print("Loss: {:.4f}, accuracy: {:.4f}".format(loss_test_WL, acc_test_WL))
 
-        # Reshape model output
+        # Reshape model output to fit the adversarial attack classifier
         reshape_with_Lip = Reshape((x_test.shape[1]*NUM_CLASS,),name="added_reshape_layer_L")(model_with_Lip_constr.output)
         new_model_with_Lip = Model(inputs=model_with_Lip_constr.input, outputs=reshape_with_Lip)
         reshape_without_Lip = Reshape((x_test.shape[1]*NUM_CLASS,),name="added_reshape_layer_WL")(model_without_Lip_constr.output)
@@ -97,17 +116,22 @@ def main():
         new_model_without_Lip.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         min_value = np.min(array_mean_values[i]) - 100*array_std[i]
         max_value = np.max(array_mean_values[i]) + 100*array_std[i]
+
+        # construct classifiers to wrap the existing model
         classifier_with_Lip = KerasClassifier(model=new_model_with_Lip, clip_values=(min_value, max_value), use_logits=False)
         classifier_without_Lip = KerasClassifier(model=new_model_without_Lip, clip_values=(min_value, max_value), use_logits=False)
 
+        # construct DeepFool attack
         attack1 = DeepFool(classifier=classifier_with_Lip, epsilon=0.2,  batch_size=10)
         attack2 = DeepFool(classifier=classifier_without_Lip, epsilon=0.2,  batch_size=10)
 
+        # Generate advasarial samples
         x_test_adv1 = attack1.generate(x=x_test)
         x_test_adv2 = attack2.generate(x=x_test)
+
+        # Evaluation of models on adversarial test dataset
         y_predict_adv_with_Lip = classifier_with_Lip.predict(x_test_adv1)
         y_predict_adv_without_Lip = classifier_without_Lip.predict(x_test_adv2)
-
         y_predict_adv_with_Lip = y_predict_adv_with_Lip.reshape((y_test.shape))
         y_predict_adv_without_Lip = y_predict_adv_without_Lip.reshape((y_test.shape))
         acc_adv_with_Lip = np.sum(np.argmax(y_predict_adv_with_Lip,axis=2)==np.argmax(y_test,axis=2)) / (y_test.shape[0]*y_test.shape[1])
@@ -115,9 +139,10 @@ def main():
         acc_adv_without_Lip = np.sum(np.argmax(y_predict_adv_without_Lip,axis=2)==np.argmax(y_test,axis=2)) / (y_test.shape[0]*y_test.shape[1])
         print("Accuracy on adversarial test examples without Lipschitz constraint: {:.2f}%".format(acc_adv_without_Lip * 100))
         
-
+        # Save comparison result
         with open("result_DeepFool.csv","a",newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow([array_overlap_ratio[i], acc_test_L,acc_test_WL,acc_adv_with_Lip,acc_adv_without_Lip])
+        
 if __name__ == "__main__":
     main()
